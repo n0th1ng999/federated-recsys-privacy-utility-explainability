@@ -1,0 +1,20 @@
+# Core Deep Learning & Tensor Operations
+torch>=2.0.0
+numpy>=1.24.0,<2.0.0
+scipy>=1.11.0
+pandas>=2.0.0
+
+# Privacy & Cryptography
+tenseal==0.3.16
+
+# Explainable AI (XAI)
+shap==0.49.1
+lime==0.2.0.1
+
+# Machine Learning & Vector Search
+scikit-learn>=1.3.0
+faiss-cpu==1.7.4
+
+# Visualization & Reporting
+matplotlib>=3.8.0
+tqdm>=4.65.0

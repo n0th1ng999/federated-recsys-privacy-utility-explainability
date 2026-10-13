@@ -1,0 +1,67 @@
+{
+  "configuration": "E2_DP2",
+  "description": "Federated Learning with Differential Privacy (DP-2)",
+  "recommendation_metrics": {
+    "hit_rate@5": 0.56,
+    "precision@5": 0.292,
+    "recall@5": 0.057090047276510444,
+    "ndcg@5": 0.30949262683059436,
+    "map@5": 0.2985925925925926,
+    "hit_rate@10": 0.66,
+    "precision@10": 0.222,
+    "recall@10": 0.07861052345303665,
+    "ndcg@10": 0.3384835428245061,
+    "map@10": 0.20082980599647268,
+    "hit_rate@20": 0.72,
+    "precision@20": 0.146,
+    "recall@20": 0.09969022746797333,
+    "ndcg@20": 0.3862680982597724,
+    "map@20": 0.12513026290092732
+  },
+  "performance_metrics": {
+    "total_training_time_sec": 42.817,
+    "local_training_time_sec": 42.183,
+    "aggregation_time_sec": 0.314,
+    "communication_time_sec": 0.0,
+    "inference_time_sec": 5.087,
+    "total_execution_time_sec": 42.817,
+    "peak_memory_mb": 3.62,
+    "communication_kb_sent": 171884.77,
+    "communication_kb_received": 171884.77,
+    "he_keygen_time_sec": 0.0,
+    "he_encryption_time_sec": 0.0,
+    "he_computation_time_sec": 0.0,
+    "he_decryption_time_sec": 0.0,
+    "he_ciphertext_size_kb": 0.0,
+    "dp_epsilon": 5.1151,
+    "dp_delta": 1e-05,
+    "dp_clipping_norm": 1.0,
+    "dp_noise_multiplier": 1.0
+  },
+  "explainability_metrics": {
+    "shap": {
+      "generation_time_sec": 0.608,
+      "avg_time_per_explanation_sec": 0.0203,
+      "num_model_evaluations": 50
+    },
+    "lime": {
+      "generation_time_sec": 4.38,
+      "avg_time_per_explanation_sec": 0.146,
+      "num_model_evaluations": 15000
+    },
+    "fidelity": {
+      "shap_mean_fidelity_delta": 3.6104947408040364,
+      "shap_max_fidelity_delta": 11.43659496307373
+    },
+    "stability": {
+      "stability_cosine_sim": 0.9047209173708636,
+      "stability_spearman_corr": 0.4516988062442608,
+      "stability_top5_agreement": 0.5079365079365079
+    },
+    "attribution_similarity_to_fl_baseline": {
+      "shap_cosine_similarity": 0.18425394509587906,
+      "shap_spearman_rank_corr": 0.17540713039169603,
+      "shap_top5_agreement": 0.2615079365079365
+    }
+  }
+}

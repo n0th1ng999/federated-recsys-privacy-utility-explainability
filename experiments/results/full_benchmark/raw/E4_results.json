@@ -1,0 +1,67 @@
+{
+  "configuration": "E4",
+  "description": "Combined Federated Learning with Differential Privacy (DP-2) and Homomorphic Encryption (CKKS)",
+  "recommendation_metrics": {
+    "hit_rate@5": 0.82,
+    "precision@5": 0.512,
+    "recall@5": 0.1240186100195487,
+    "ndcg@5": 0.366936978976031,
+    "map@5": 0.4733333333333333,
+    "hit_rate@10": 0.86,
+    "precision@10": 0.48599999999999993,
+    "recall@10": 0.22803632669687776,
+    "ndcg@10": 0.43031808175650005,
+    "map@10": 0.4232614148540075,
+    "hit_rate@20": 0.88,
+    "precision@20": 0.385,
+    "recall@20": 0.3449919027507234,
+    "ndcg@20": 0.4952411747589822,
+    "map@20": 0.35292048362213974
+  },
+  "performance_metrics": {
+    "total_training_time_sec": 50.626,
+    "local_training_time_sec": 24.713,
+    "aggregation_time_sec": 25.421,
+    "communication_time_sec": 0.0,
+    "inference_time_sec": 5.139,
+    "total_execution_time_sec": 50.626,
+    "peak_memory_mb": 3.63,
+    "communication_kb_sent": 3697418.34,
+    "communication_kb_received": 171884.77,
+    "he_keygen_time_sec": 0.272,
+    "he_encryption_time_sec": 20.5394,
+    "he_computation_time_sec": 3.294,
+    "he_decryption_time_sec": 0.9837,
+    "he_ciphertext_size_kb": 3525533.58,
+    "dp_epsilon": 5.1151,
+    "dp_delta": 1e-05,
+    "dp_clipping_norm": 1.0,
+    "dp_noise_multiplier": 1.0
+  },
+  "explainability_metrics": {
+    "shap": {
+      "generation_time_sec": 0.508,
+      "avg_time_per_explanation_sec": 0.0169,
+      "num_model_evaluations": 50
+    },
+    "lime": {
+      "generation_time_sec": 3.416,
+      "avg_time_per_explanation_sec": 0.1139,
+      "num_model_evaluations": 15000
+    },
+    "fidelity": {
+      "shap_mean_fidelity_delta": 0.19105209906895956,
+      "shap_max_fidelity_delta": 1.0496591329574585
+    },
+    "stability": {
+      "stability_cosine_sim": 0.5053701841379047,
+      "stability_spearman_corr": 0.20494904509660442,
+      "stability_top5_agreement": 0.30952380952380953
+    },
+    "attribution_similarity_to_fl_baseline": {
+      "shap_cosine_similarity": -0.11142421839500359,
+      "shap_spearman_rank_corr": -0.0739329660503842,
+      "shap_top5_agreement": 0.14947089947089948
+    }
+  }
+}

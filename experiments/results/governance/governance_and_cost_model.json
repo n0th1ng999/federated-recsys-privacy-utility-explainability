@@ -1,0 +1,127 @@
+{
+  "mcda_governance": {
+    "raw_scores": {
+      "E0_Centralized": {
+        "D1_Regulatory_Compliance": 1,
+        "D2_Confidentiality_Guarantee": 1,
+        "D3_Explainability_Auditability": 5,
+        "D4_Infrastructure_Feasibility": 5,
+        "D5_TCO_Cost_Efficiency": 5,
+        "D6_Operational_Simplicity": 5
+      },
+      "E1_Plaintext_FL": {
+        "D1_Regulatory_Compliance": 3,
+        "D2_Confidentiality_Guarantee": 2,
+        "D3_Explainability_Auditability": 4,
+        "D4_Infrastructure_Feasibility": 4,
+        "D5_TCO_Cost_Efficiency": 4,
+        "D6_Operational_Simplicity": 4
+      },
+      "E2_DP_FL": {
+        "D1_Regulatory_Compliance": 5,
+        "D2_Confidentiality_Guarantee": 4,
+        "D3_Explainability_Auditability": 2,
+        "D4_Infrastructure_Feasibility": 4,
+        "D5_TCO_Cost_Efficiency": 4,
+        "D6_Operational_Simplicity": 3
+      },
+      "E3_CKKS_HE_FL": {
+        "D1_Regulatory_Compliance": 4,
+        "D2_Confidentiality_Guarantee": 5,
+        "D3_Explainability_Auditability": 4,
+        "D4_Infrastructure_Feasibility": 1,
+        "D5_TCO_Cost_Efficiency": 2,
+        "D6_Operational_Simplicity": 2
+      },
+      "E4_Hybrid_DP_HE_FL": {
+        "D1_Regulatory_Compliance": 5,
+        "D2_Confidentiality_Guarantee": 5,
+        "D3_Explainability_Auditability": 2,
+        "D4_Infrastructure_Feasibility": 1,
+        "D5_TCO_Cost_Efficiency": 1,
+        "D6_Operational_Simplicity": 1
+      }
+    },
+    "persona_weights": {
+      "Persona_A_Regulated_Finance_Health": {
+        "D1_Regulatory_Compliance": 0.3,
+        "D2_Confidentiality_Guarantee": 0.35,
+        "D3_Explainability_Auditability": 0.15,
+        "D4_Infrastructure_Feasibility": 0.05,
+        "D5_TCO_Cost_Efficiency": 0.1,
+        "D6_Operational_Simplicity": 0.05
+      },
+      "Persona_B_Consumer_Retail_Commerce": {
+        "D1_Regulatory_Compliance": 0.1,
+        "D2_Confidentiality_Guarantee": 0.1,
+        "D3_Explainability_Auditability": 0.2,
+        "D4_Infrastructure_Feasibility": 0.25,
+        "D5_TCO_Cost_Efficiency": 0.25,
+        "D6_Operational_Simplicity": 0.1
+      },
+      "Persona_C_B2B_Enterprise_Consortium": {
+        "D1_Regulatory_Compliance": 0.2,
+        "D2_Confidentiality_Guarantee": 0.2,
+        "D3_Explainability_Auditability": 0.2,
+        "D4_Infrastructure_Feasibility": 0.15,
+        "D5_TCO_Cost_Efficiency": 0.15,
+        "D6_Operational_Simplicity": 0.1
+      }
+    },
+    "composite_scores": {
+      "Persona_A_Regulated_Finance_Health": {
+        "E0_Centralized": 2.4,
+        "E1_Plaintext_FL": 3.0,
+        "E2_DP_FL": 3.95,
+        "E3_CKKS_HE_FL": 3.9,
+        "E4_Hybrid_DP_HE_FL": 3.75
+      },
+      "Persona_B_Consumer_Retail_Commerce": {
+        "E0_Centralized": 4.2,
+        "E1_Plaintext_FL": 3.7,
+        "E2_DP_FL": 3.6,
+        "E3_CKKS_HE_FL": 2.65,
+        "E4_Hybrid_DP_HE_FL": 2.0
+      },
+      "Persona_C_B2B_Enterprise_Consortium": {
+        "E0_Centralized": 3.4,
+        "E1_Plaintext_FL": 3.4,
+        "E2_DP_FL": 3.7,
+        "E3_CKKS_HE_FL": 3.25,
+        "E4_Hybrid_DP_HE_FL": 2.8
+      }
+    }
+  },
+  "cloud_cost_and_carbon": {
+    "E1_Plaintext": {
+      "monthly_transfer_gb": 24.59,
+      "monthly_egress_cost_usd": 2.21,
+      "monthly_energy_kwh": 0.1237,
+      "monthly_carbon_gco2eq": 47.63
+    },
+    "E2_DP": {
+      "monthly_transfer_gb": 24.59,
+      "monthly_egress_cost_usd": 2.21,
+      "monthly_energy_kwh": 0.1265,
+      "monthly_carbon_gco2eq": 48.69
+    },
+    "E3_CKKS_HE_Full": {
+      "monthly_transfer_gb": 528.94,
+      "monthly_egress_cost_usd": 47.6,
+      "monthly_energy_kwh": 2.6753,
+      "monthly_carbon_gco2eq": 1030.01
+    },
+    "E3_CKKS_TopK_10pct": {
+      "monthly_transfer_gb": 50.39,
+      "monthly_egress_cost_usd": 4.54,
+      "monthly_energy_kwh": 0.255,
+      "monthly_carbon_gco2eq": 98.18
+    },
+    "E4_Hybrid_Full": {
+      "monthly_transfer_gb": 528.95,
+      "monthly_egress_cost_usd": 47.61,
+      "monthly_energy_kwh": 2.6764,
+      "monthly_carbon_gco2eq": 1030.4
+    }
+  }
+}

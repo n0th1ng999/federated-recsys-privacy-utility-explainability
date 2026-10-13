@@ -1,0 +1,375 @@
+% ==================================================
+% Tables for Emerald Data Technologies and Applications (DTA)
+% Formatted with Roman numerals and standalone placement
+% ==================================================
+
+% --------------------------------------------------
+% Table I: Related Work Positioning
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Comparison of selected studies in federated recommendation, privacy, and explainability.}
+\label{tab:related_work}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{1.85cm}*{6}{Y}}
+\toprule
+\textbf{Study} & \textbf{FL Setting} & \textbf{HE Scheme} & \textbf{DP Analysis} & \textbf{XAI Methods} & \textbf{Ranking Metrics} & \textbf{Trade-off Analysis} \\
+\midrule
+Tan et al. (2020) & FedAvg & None & None & None & Top-$K$ ranking & Not reported \\
+Minto et al. (2021) & Secure aggregation & Paillier/CKKS & None & None & NDCG, Recall & Communication--utility \\
+Javeed et al. (2023) & FedAvg & None & Gaussian DP & None & MSE, Precision & Privacy--utility \\
+Saha et al. (2024) & Survey & Conceptual & Conceptual & None & Not applicable & Qualitative review \\
+Shin et al. (2023) & FedAvg & None & Latent DP & None & Hit Rate, NDCG & Privacy--utility \\
+Gaspar et al. (2025) & FedAvg & None & None & SHAP, LIME & Accuracy, RMSE & XAI--accuracy \\
+Gaspar et al. (2026) & Review & Partial & Partial & None & Not applicable & Literature synthesis \\
+\textbf{This study} & \textbf{FedAvg} & \textbf{TenSEAL CKKS} & \textbf{Client RDP ($\sigma \in \{0.5, 1.0, 2.0\}$)} & \textbf{KernelSHAP, LIME} & \textbf{P, R, NDCG, MAP, HR} & \textbf{Four-axis comparison} \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table II: Threat Model, Trust Assumptions, and Adversary Coverage
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Threat model, trust assumptions, and adversary coverage across experimental configurations.}
+\label{tab:threat_model_summary}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.3cm}*{3}{c}>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Configuration} & \textbf{Privacy Mechanism} & \textbf{Server Assumption} & \multicolumn{3}{c}{\textbf{Adversary Mitigated?}} & \textbf{Formal Output Guarantee} \\
+\cmidrule(lr){4-6}
+ & & & $\mathcal{A}_{\text{server}}$ & $\mathcal{A}_{\text{peer}}$ & $\mathcal{A}_{\text{external}}$ & \\
+\midrule
+E0: Centralized & None (data pooling) & Fully trusted & No & No & No & None (raw data pooled) \\
+E1: Plaintext FL & Local data silos & Fully trusted & No & No & No & Data locality only \\
+E2: Central DP & Server Gaussian noise & Trusted Curator & \textbf{No} & \textbf{Yes} & \textbf{Yes} & $(\epsilon, \delta)$-DP on global $\mathbf{w}_t$ \\
+E3: TenSEAL HE & CKKS ciphertext agg. & Honest-but-curious & \textbf{Yes} & No & No & 128-bit IND-CPA on updates \\
+E4: Hybrid DP+HE & Client noise + CKKS & Honest-but-curious & \textbf{Yes} & \textbf{Yes} & \textbf{Yes} & 128-bit IND-CPA + $(\epsilon, \delta)$-DP \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. $\mathcal{A}_{\text{server}}$: Curious aggregation server observing plaintext updates in transit. $\mathcal{A}_{\text{peer}}$: Participating clients observing broadcasted global model updates. $\mathcal{A}_{\text{external}}$: External observers/consumers inspecting released checkpoints or querying the final model.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table III: Hyperparameters
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{System hyperparameter specifications across experimental modules.}
+\label{tab:hyperparams}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Module} & \textbf{Hyperparameter} & \textbf{Value or Specification} \\
+\midrule
+\multirow{4}{=}{\textbf{Model Architecture}}
+ & Base recommender & \texttt{CoreHybridRecSys} multi-branch neural network \\
+ & Trainable parameters & 586,700 weights ($2,346.8$\,KB, float32) \\
+ & Feature dimensionality & 43 tabular features across user state, collaborative, and context branches \\
+ & Loss formulation & Multi-task: BCE ($1.0$) + Margin Ranking ($0.2$) + Confidence ($0.1$) \\
+\midrule
+\multirow{4}{=}{\textbf{Federated Learning}}
+ & Total clients & $N = 20$ client partitions \\
+ & Sampled clients/round & $m = 5$ clients ($25\%$ participation rate, $q=0.25$) \\
+ & Communication rounds & $T = 15$ global rounds \\
+ & Local training & $E = 1$ epoch, Adam optimizer, $\eta = 0.001$, batch size 64 \\
+\midrule
+\multirow{5}{=}{\textbf{Differential Privacy}}
+ & Privacy unit & Client partition level \\
+ & Adjacency relation & Client replacement adjacency ($\mathcal{D} \sim \mathcal{D}'$) \\
+ & Clipping norm & $C = 1.0$ ($L_2$ client update clipping bound) \\
+ & Noise multipliers & $\sigma \in \{0.5, 1.0, 2.0\}$ (nominal presets DP-1, DP-2, DP-3) \\
+ & Target $\delta$ \& Accountant & $\delta = 10^{-5}$; Subsampled Gaussian RDP ($\epsilon \in \{11.17, 5.12, 2.44\}$, provisional) \\
+\midrule
+\multirow{4}{=}{\textbf{Homomorphic Encryption}}
+ & Cryptographic scheme & TenSEAL CKKS (Microsoft SEAL 3.7.2 backend) \\
+ & Polynomial degree & $N_{\text{poly}} = 8{,}192$ (SIMD slot capacity: 4,096 complex slots) \\
+ & Modulus bit sizes & $[60, 40, 40, 60]$ ($200$ total modulus bits; 128-bit classical security) \\
+ & Scale bit width & $2^{40}$ precision scale \\
+\midrule
+\multirow{4}{=}{\textbf{Explainability (XAI)}}
+ & Evaluation instances & $M_{\text{eval}} = 30$ instances across holdout test users \\
+ & KernelSHAP budget & $K_{\text{bg}} = 20$ background instances, $50$ coalition samples/instance ($1{,}500$ model evals) \\
+ & LIME budget & $500$ normal perturbation samples/instance, local ridge surrogate ($15{,}000$ model evals) \\
+ & Masking parameter & Top-$3$ features by descending absolute SHAP attribution \\
+\midrule
+\multirow{2}{=}{\textbf{Datasets}}
+ & EARS benchmark & $5{,}157$ interaction samples partitioned across $20$ training clients (mean: $257.8$) \\
+ & MovieLens-100k & $8{,}255$ filtered interactions partitioned across $20$ clients ($\alpha=0.5$; 50 test users) \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. For EARS, the full constructed pool contains $14{,}024$ samples across 50 users, of which $5{,}157$ are allocated across the 20 federated training clients.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table IV: Recommendation Performance
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Recommendation performance metrics at cutoff $K=10$ across privacy configurations ($\text{mean} \pm \text{standard deviation}$ across 10 random seeds $\{42, \dots, 51\}$).}
+\label{tab:recommendation_results}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X*{5}{c}}
+\toprule
+\textbf{Configuration} & \shortstack{\textbf{Precision}\\\textbf{@10}} & \shortstack{\textbf{Recall}\\\textbf{@10}} & \shortstack{\textbf{NDCG}\\\textbf{@10}} & \shortstack{\textbf{MAP}\\\textbf{@10}} & \shortstack{\textbf{Hit Rate}\\\textbf{@10}} \\
+\midrule
+E0: Centralized baseline & $0.8193 \pm 0.0140$ & $0.3501 \pm 0.0281$ & $0.5048 \pm 0.0175$ & $0.9009 \pm 0.0215$ & $0.9000 \pm 0.0000$ \\
+E1: Plaintext FedAvg & $0.8474 \pm 0.0121$ & $0.3851 \pm 0.0158$ & $0.5379 \pm 0.0268$ & $0.9330 \pm 0.0086$ & $0.9000 \pm 0.0000$ \\
+E2\_DP1: $\sigma=0.5$, $\epsilon=11.17$ & $0.2237 \pm 0.2737$ & $0.0962 \pm 0.1275$ & $0.3675 \pm 0.1197$ & $0.2126 \pm 0.2875$ & $0.4967 \pm 0.3599$ \\
+E2\_DP2: $\sigma=1.0$, $\epsilon=5.12$ & $0.3050 \pm 0.2329$ & $0.1216 \pm 0.1002$ & $0.3929 \pm 0.0926$ & $0.2932 \pm 0.2388$ & $0.6313 \pm 0.2701$ \\
+E2\_DP3: $\sigma=2.0$, $\epsilon=2.44$ & $0.3539 \pm 0.2927$ & $0.1436 \pm 0.1208$ & $0.4199 \pm 0.1183$ & $0.3299 \pm 0.3203$ & $0.6393 \pm 0.2683$ \\
+E3: FedAvg with CKKS HE & $0.8485 \pm 0.0127$ & $0.3860 \pm 0.0161$ & $0.5377 \pm 0.0279$ & $0.9345 \pm 0.0099$ & $0.9000 \pm 0.0000$ \\
+E4: FedAvg with DP and HE & $0.3927 \pm 0.2368$ & $0.1587 \pm 0.1061$ & $0.4109 \pm 0.0968$ & $0.3843 \pm 0.2401$ & $0.6767 \pm 0.2731$ \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. Evaluated across $N=10$ random seeds $\{42, \dots, 51\}$. Paired differences between Plaintext FedAvg (E1) and TenSEAL CKKS (E3) yield mean $\bar{d} = -0.00022 \pm 0.00289$ (NDCG@10 relative difference $-0.04\%$) with 95\% CI $[-0.00228, +0.00185]$ and Cohen's $d = -0.075$. Formal Two One-Sided Tests (TOST, $df=9$) establish equivalence within margin $\pm 0.01$ ($t_1=10.71, t_2=-11.18, p_{\text{TOST}}=1.01\times 10^{-6}$, observed power $1.0000$) and tighter margin $\pm 0.005$ ($t_1=5.24, t_2=-5.71, p_{\text{TOST}}=2.68\times 10^{-4}$). Minimum Detectable Effect at 80\% power is $0.00227$. Extended DP sweep across 5 noise multipliers confirms monotonic trade-off; unweighted macro-averaging preserves closed-form DP sensitivity ($\Delta_2 = C/m$).}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table V: Computational Overhead
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.2pt}
+\renewcommand{\arraystretch}{1.14}
+\caption{Computational training time, server aggregation latency, communication volume, and reported differential privacy accountant outputs ($\text{mean} \pm \text{standard deviation}$ across random seeds $\{42, 43, 44\}$).}
+\label{tab:overhead_results}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X*{7}{Y}}
+\toprule
+\textbf{Config.} & \textbf{Train Time (s)} & \textbf{Local Time (s)} & \textbf{Agg. Time (s)} & \textbf{Comm. (MB)} & \textbf{Ciphertext (MB)} & \textbf{DP $\epsilon$ (Prov.)} & \textbf{Time Overhead vs E1} \\
+\midrule
+E0 & $27.32 \pm 1.83$ & $27.32 \pm 1.83$ & 0.000 & 0.00 & 0.00 & --- & Centralized reference \\
+E1 & $25.33 \pm 1.71$ & $25.10 \pm 1.72$ & $0.042 \pm 0.006$ & 167.85 & 0.00 & --- & Baseline \\
+E2\_DP1 & $25.28 \pm 1.16$ & $24.90 \pm 1.15$ & $0.188 \pm 0.008$ & 167.85 & 0.00 & 11.1677 & $-0.2\%$ \\
+E2\_DP2 & $25.45 \pm 0.53$ & $25.07 \pm 0.53$ & $0.186 \pm 0.004$ & 167.85 & 0.00 & 5.1151 & $+0.5\%$ \\
+E2\_DP3 & $26.47 \pm 1.96$ & $26.07 \pm 1.95$ & $0.196 \pm 0.005$ & 167.85 & 0.00 & 2.4403 & $+4.5\%$ \\
+E3 & $49.71 \pm 0.68$ & $24.69 \pm 0.47$ & $24.516 \pm 0.293$ & 3610.90 & 3443.04 & --- & $+96.2\%$ \\
+E4 & $51.15 \pm 2.04$ & $25.39 \pm 1.57$ & $25.302 \pm 0.458$ & 3610.94 & 3443.08 & 5.1151 & $+101.9\%$ \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. DP $\epsilon$ values reflect provisional RDP accountant outputs under subsampled Gaussian approximation at $\delta=10^{-5}$.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table VI: Communication Expansion
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Consolidated comparison of plaintext and CKKS communication volume across 15 federated rounds.}
+\label{tab:communication_expansion}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.35cm}>{\raggedright\arraybackslash}X>{\centering\arraybackslash}p{2.5cm}>{\centering\arraybackslash}p{2.0cm}>{\centering\arraybackslash}p{1.9cm}}
+\toprule
+\textbf{Configuration} & \textbf{Transmitted Representation} & \textbf{Total Volume} & \textbf{Relative Volume} & \textbf{Increase vs E1} \\
+\midrule
+E1: Plaintext FedAvg & Unencrypted float32 model updates & $167.85$\,MB & $1.00\times$ & Baseline \\
+E3: CKKS aggregation & CKKS ciphertext chunks for encrypted model updates & $3.61$\,GB ($3,610.90$\,MB) & $21.51\times$ & $+2,051.3\%$ \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. The measured ciphertext expansion component is $3,443.04$\,MB; volumes use decimal megabyte conversion.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table VII: Explainability Benchmark
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.14}
+\caption{Explainability benchmark: runtime latency, attribution similarity relative to E0 reference, Top-3 masking sensitivity, stability ($\text{mean} \pm \text{standard deviation}$ across random seeds $\{42, 43, 44\}$), and advanced faithfulness / inter-method agreement validation.}
+\label{tab:xai_results}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X*{6}{Y}}
+\toprule
+\multicolumn{7}{l}{\textbf{Panel A: Primary Post-Hoc Attribution and Operational Latency Metrics ($N=3$ seeds)}} \\
+\midrule
+\textbf{Config.} & \shortstack{\textbf{SHAP}\\\textbf{Time (s)}} & \shortstack{\textbf{LIME}\\\textbf{Time (s)}} & \shortstack{\textbf{Cosine Sim.}\\\textbf{vs E0 Ref.}} & \shortstack{\textbf{Top-5}\\\textbf{Agreement}} & \shortstack{\textbf{Top-3 Masking}\\$\boldsymbol{\Delta_{\text{mask}}}$} & \shortstack{\textbf{Stability}\\\textbf{Cosine Sim.}} \\
+\midrule
+E0 & $0.52 \pm 0.04$ & $3.42 \pm 0.06$ & 1.0000 & 1.0000 & $3.7636 \pm 0.2428$ & $0.8882 \pm 0.0918$ \\
+E1 & $0.63 \pm 0.08$ & $3.56 \pm 0.29$ & $0.8681 \pm 0.0057$ & $0.5793 \pm 0.0318$ & $3.9956 \pm 0.6754$ & $0.8220 \pm 0.1702$ \\
+E2\_DP1 & $0.59 \pm 0.04$ & $3.48 \pm 0.34$ & $0.0820 \pm 0.1128$ & $0.1848 \pm 0.0332$ & $0.8040 \pm 0.3732$ & $0.7872 \pm 0.1998$ \\
+E2\_DP2 & $0.72 \pm 0.22$ & $3.76 \pm 0.02$ & $0.1183 \pm 0.0510$ & $0.1945 \pm 0.0973$ & $2.9677 \pm 0.7693$ & $0.8776 \pm 0.1063$ \\
+E2\_DP3 & $0.69 \pm 0.05$ & $3.73 \pm 0.11$ & $-0.0175 \pm 0.0657$ & $0.1954 \pm 0.0580$ & $11.7006 \pm 5.6604$ & $0.8737 \pm 0.1182$ \\
+E3 & $0.52 \pm 0.02$ & $3.41 \pm 0.18$ & $0.8693 \pm 0.0057$ & $0.5802 \pm 0.0219$ & $3.9892 \pm 0.6561$ & $0.6854 \pm 0.1546$ \\
+E4 & $0.55 \pm 0.06$ & $3.59 \pm 0.18$ & $-0.0417 \pm 0.0832$ & $0.1302 \pm 0.0423$ & $0.5830 \pm 0.3644$ & $0.6743 \pm 0.2464$ \\
+\midrule
+\multicolumn{7}{l}{\textbf{Panel B: Advanced Faithfulness and Inter-Method Agreement Validation (SHAP vs. LIME on identical instances)}} \\
+\midrule
+\textbf{Config.} & \multicolumn{2}{c}{\shortstack{\textbf{Marginal Permutation}\\\textbf{Fidelity} $\boldsymbol{\Delta_{\text{perm}}}$}} & \shortstack{\textbf{Faithfulness}\\\textbf{Deletion AUC}} & \shortstack{\textbf{Inter-Method}\\\textbf{Spearman} $\boldsymbol{\rho}$} & \shortstack{\textbf{Inter-Method}\\\textbf{Cosine Sim.}} & \shortstack{\textbf{Inter-Method}\\\textbf{Top-5 Jaccard}} \\
+\midrule
+E0 & \multicolumn{2}{c}{$1.5843$} & $3.6637 \pm 6.0226$ & $0.4713$ & $0.6511$ & $0.3988$ \\
+E1 & \multicolumn{2}{c}{$2.2139$} & $6.6443 \pm 14.6378$ & $0.4827$ & $0.6758$ & $0.3710$ \\
+E2\_DP2 & \multicolumn{2}{c}{$1.8082$} & $0.7980 \pm 0.2113$ & $0.1194$ & $0.1069$ & $0.1554$ \\
+E3 & \multicolumn{2}{c}{$2.2139$} & $6.6443 \pm 14.6379$ & $0.4803$ & $0.6758$ & $0.3710$ \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. Panel A: Attribution cosine similarity and Top-5 agreement are evaluated relative to E0 (Centralized baseline). Top-3 masking sensitivity denotes mean absolute change in ranking score when the three highest-magnitude SHAP features are zeroed. Panel B: Marginal permutation fidelity replaces Top-3 features with values sampled from the empirical background marginal distribution. Faithfulness Deletion AUC measures cumulative ranking score change under progressive removal of top $k \in \{1,\dots,10\}$ features in descending attribution order. Inter-method metrics compute agreement between KernelSHAP and LIME explanations generated on identical instances.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table VIII: Cross-Dataset Validation
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.14}
+\caption{Cross-dataset validation: comparison between proprietary enterprise e-commerce (EARS) and public entertainment benchmark (MovieLens-100k) across configurations ($\text{mean} \pm \text{standard deviation}$ across seeds $\{42, 43, 44\}$).}
+\label{tab:cross_dataset}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{1.8cm}*{8}{Y}}
+\toprule
+\textbf{Config} & \shortstack{\textbf{EARS}\\\textbf{NDCG@10}} & \shortstack{\textbf{ML-100k}\\\textbf{NDCG@10}} & \shortstack{\textbf{EARS}\\\textbf{Recall@10}} & \shortstack{\textbf{ML-100k}\\\textbf{Recall@10}} & \shortstack{\textbf{EARS}\\\textbf{Train (s)}} & \shortstack{\textbf{ML-100k}\\\textbf{Train (s)}} & \shortstack{\textbf{EARS}\\\textbf{Mask $\Delta$}} & \shortstack{\textbf{ML-100k}\\\textbf{Mask $\Delta$}} \\
+\midrule
+E0 & $0.5261 \pm 0.0023$ & $0.9130 \pm 0.0316$ & $0.3844 \pm 0.0171$ & $0.3695 \pm 0.0000$ & $27.32 \pm 1.83$ & $17.58 \pm 0.90$ & $3.764 \pm 0.243$ & $3.097 \pm 0.396$ \\
+E1 & $0.5629 \pm 0.0302$ & $0.8877 \pm 0.0347$ & $0.4058 \pm 0.0106$ & $0.3695 \pm 0.0000$ & $25.33 \pm 1.71$ & $18.75 \pm 0.31$ & $3.996 \pm 0.675$ & $2.394 \pm 1.131$ \\
+E2\_DP1 & $0.5221 \pm 0.1056$ & $0.7396 \pm 0.0329$ & $0.2358 \pm 0.1603$ & $0.3666 \pm 0.0051$ & $25.28 \pm 1.16$ & $19.27 \pm 0.29$ & $0.804 \pm 0.373$ & $0.589 \pm 0.497$ \\
+E2\_DP2 & $0.4301 \pm 0.0824$ & $0.4017 \pm 0.3142$ & $0.1613 \pm 0.0754$ & $0.1507 \pm 0.1904$ & $25.45 \pm 0.53$ & $19.87 \pm 0.65$ & $2.968 \pm 0.769$ & $2.741 \pm 3.702$ \\
+E2\_DP3 & $0.4022 \pm 0.1395$ & $0.2731 \pm 0.1146$ & $0.1079 \pm 0.1300$ & $0.0773 \pm 0.0665$ & $26.47 \pm 1.96$ & $18.76 \pm 0.52$ & $11.701 \pm 5.660$ & $4.074 \pm 2.646$ \\
+E3 & $0.5646 \pm 0.0301$ & $0.8943 \pm 0.0392$ & $0.4067 \pm 0.0110$ & $0.3695 \pm 0.0000$ & $49.71 \pm 0.68$ & $43.98 \pm 0.58$ & $3.989 \pm 0.656$ & $2.376 \pm 1.318$ \\
+E4 & $0.4337 \pm 0.0379$ & $0.3747 \pm 0.1699$ & $0.2143 \pm 0.0677$ & $0.1456 \pm 0.1099$ & $51.15 \pm 2.04$ & $45.47 \pm 0.46$ & $0.583 \pm 0.364$ & $0.961 \pm 0.265$ \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table IX: Empirical Privacy Attack Validation
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.18}
+\caption{Empirical privacy attack validation: Deep Leakage from Gradients (DLG) reconstruction and Membership Inference Attack (MIA) across configurations.}
+\label{tab:attack_results}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.3cm}>{\centering\arraybackslash}p{1.7cm}>{\centering\arraybackslash}p{2.0cm}>{\centering\arraybackslash}p{1.8cm}>{\centering\arraybackslash}p{1.4cm}>{\centering\arraybackslash}p{1.5cm}>{\centering\arraybackslash}p{1.5cm}>{\centering\arraybackslash}p{1.5cm}>{\centering\arraybackslash}X}
+\toprule
+\textbf{Configuration} & \textbf{Adversary Target} & \multicolumn{3}{c}{\textbf{Gradient Inversion Defense (DLG)}} & \multicolumn{4}{c}{\textbf{Membership Inference Defense (MIA)}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-9}
+ & & \textbf{Recon. MSE} & \textbf{Cosine Sim.} & \textbf{ASR (\%)} & \textbf{Member Loss} & \textbf{Non-Member} & \textbf{Loss Gap} & \textbf{ROC-AUC} \\
+\midrule
+E1: Plaintext FedAvg & $\mathcal{A}_{\text{server}}$ / $\mathcal{A}_{\text{external}}$ & $5.41\times 10^{-6}$ & $0.9999 \pm 0.0002$ & $100.0\%$ & $0.6442$ & $0.6053$ & $-0.039$ & $0.2138$ \\
+E2: DP ($\sigma=0.5$) & $\mathcal{A}_{\text{peer}}$ / $\mathcal{A}_{\text{external}}$ & $405.2$ & $0.0389 \pm 0.1969$ & $0.0\%$ & $1.3771$ & $1.3391$ & $-0.038$ & $0.6180$ \\
+E2: DP ($\sigma=1.0$) & $\mathcal{A}_{\text{peer}}$ / $\mathcal{A}_{\text{external}}$ & $4.48\times 10^7$ & $-0.0014 \pm 0.1657$ & $0.0\%$ & $36.537$ & $50.605$ & $+14.068$ & $0.6815$ \\
+E2: DP ($\sigma=2.0$) & $\mathcal{A}_{\text{peer}}$ / $\mathcal{A}_{\text{external}}$ & $1.68\times 10^5$ & $0.0049 \pm 0.2133$ & $0.0\%$ & $276.33$ & $224.25$ & $-52.085$ & $0.4035$ \\
+E3: TenSEAL CKKS & $\mathcal{A}_{\text{server}}$ & $1.0053$ & $0.0193 \pm 0.1436$ & $0.0\%$ & $0.6445$ & $0.6060$ & $-0.038$ & $0.2170$ \\
+E4: Hybrid DP+HE & $\mathcal{A}_{\text{server}}$ + $\mathcal{A}_{\text{external}}$ & $1.0053$ & $0.0193 \pm 0.1436$ & $0.0\%$ & $36.537$ & $50.605$ & $+14.068$ & $0.6815$ \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. DLG evaluated over 40 client feature instances using L-BFGS optimization ($100$ iterations). Attack Success Rate (ASR) threshold: $\cos(x^*, x) \ge 0.80$. In E3 and E4, individual parameter updates are encrypted under 128-bit IND-CPA CKKS ciphertext, reducing server reconstruction to random search. MIA evaluated on 100 client training member records versus 100 holdout non-member records. Notice that E3 yields identical MIA metrics to E1 plaintext, confirming that homomorphic encryption provides zero defense against membership inference on the decrypted final model.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table X: Top-K Sparsification and Pareto Frontier
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Homomorphic Encryption Top-$K$ parameter sparsification: communication reduction, computational runtime, and ranking utility Pareto frontier.}
+\label{tab:sparsification_results}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.2cm}*{6}{c}}
+\toprule
+\textbf{Retained Params} & \textbf{Payload/Round} & \textbf{Total Comm.} & \textbf{Comm. Reduction} & \textbf{Total Runtime} & \textbf{NDCG@10} & \textbf{Utility Retention} \\
+($K\%$) & \textbf{(MB)} & \textbf{(MB)} & \textbf{(\%)} & \textbf{(s)} & & \textbf{(\%)} \\
+\midrule
+$K = 100\%$ (Full) & $1{,}095.1$\,MB & $16{,}426.9$\,MB & Baseline ($0.0\%$) & $24.51$\,s & $0.5212$ & $100.0\%$ \\
+$K = 50\%$ & $547.6$\,MB & $8{,}213.5$\,MB & $-50.0\%$ & $23.85$\,s & $0.5243$ & $100.6\%$ \\
+$K = 20\%$ & $220.5$\,MB & $3{,}308.2$\,MB & $-80.0\%$ & $24.18$\,s & $0.5774$ & $110.8\%$ \\
+$K = 10\%$ & $114.1$\,MB & $1{,}711.1$\,MB & $-90.0\%$ & $24.63$\,s & $0.6518$ & $125.1\%$ \\
+$K = 5\%$ & $60.8$\,MB & $912.6$\,MB & $-95.0\%$ & $25.04$\,s & $0.6508$ & $124.9\%$ \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. Measured across 15 federated training rounds on EARS benchmark with TenSEAL CKKS encryption. Retaining Top-10\% to Top-20\% parameter gradients eliminates 80\%--90\% of communication overhead while enhancing ranking accuracy via noise filtering of uninformative parameter coordinates.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table XI: Enterprise Governance MCDA and Cloud TCO
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.18}
+\caption{Multi-Criteria Decision Analysis (MCDA) enterprise governance scoring rubric and monthly cloud egress cost / carbon footprint model.}
+\label{tab:governance_cost_results}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.3cm}*{6}{c}*{3}{c}>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Architecture} & \multicolumn{6}{c}{\textbf{Governance Dimension Scores (1--5)}} & \multicolumn{3}{c}{\textbf{Composite Persona Score}} & \textbf{Monthly Cloud TCO} \\
+\cmidrule(lr){2-7} \cmidrule(lr){8-10}
+ & \textbf{D1} & \textbf{D2} & \textbf{D3} & \textbf{D4} & \textbf{D5} & \textbf{D6} & \textbf{Persona A} & \textbf{Persona B} & \textbf{Persona C} & \textbf{(100 Clients, 30 Days)} \\
+\midrule
+E0: Centralized & 1 & 1 & 5 & 5 & 5 & 5 & $2.400$ & $\mathbf{4.200}$ & $3.400$ & $\$0.00$ ($0.0$\,GB; $0$\,g) \\
+E1: Plaintext FL & 3 & 2 & 4 & 4 & 4 & 4 & $3.000$ & $3.700$ & $3.400$ & $\$2.21$ ($24.6$\,GB; $48$\,g) \\
+E2: DP-FedAvg & 5 & 4 & 2 & 4 & 4 & 3 & $\mathbf{3.950}$ & $3.600$ & $\mathbf{3.700}$ & $\$2.21$ ($24.6$\,GB; $49$\,g) \\
+E3: CKKS Full & 4 & 5 & 4 & 1 & 2 & 2 & $3.900$ & $2.650$ & $3.250$ & $\$47.60$ ($528.9$\,GB; $1{,}030$\,g) \\
+E3: CKKS Top-10\% & 4 & 5 & 4 & 4 & 4 & 3 & $\mathbf{4.200}$ & $3.500$ & $\mathbf{3.850}$ & $\$4.54$ ($50.4$\,GB; $98$\,g) \\
+E4: Hybrid DP+HE & 5 & 5 & 2 & 1 & 1 & 1 & $3.750$ & $2.000$ & $2.800$ & $\$47.61$ ($529.0$\,GB; $1{,}030$\,g) \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. Dimensions: D1: Regulatory Compliance (GDPR Art. 25, HIPAA); D2: Confidentiality Guarantee; D3: Auditability \& Explainability; D4: Infrastructure Feasibility; D5: TCO Efficiency; D6: Operational Simplicity. Personas: Persona A (Regulated Finance/Healthcare; 65\% security/compliance weight); Persona B (Consumer Retail; 50\% latency/cost weight); Persona C (Multi-Enterprise Consortium; balanced weights). Cloud TCO computes standard Tier-1 cloud egress network transfer (\$0.09/GB) and operational carbon emission ($\text{gCO}_2\text{eq}$ at $385$\,g/kWh) for 100 enterprise clients updating daily across 30 days.}
+\end{table}
+
+\clearpage
+
+% --------------------------------------------------
+% Table XII: Practitioner Decision Guide
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.2pt}
+\renewcommand{\arraystretch}{1.20}
+\caption{Architectural decision matrix: comparison of adversary scope, theoretical threat mitigations, measured ranking utility, measured systems overhead, and recommended operational use cases.}
+\label{tab:practitioner_guide}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Configuration} & \textbf{Adversary Scope \& Mitigated Threats} & \textbf{Ranking Utility (NDCG@10)} & \textbf{Computational Overhead} & \textbf{Communication Footprint} & \textbf{Explainability Alignment} & \textbf{Recommended Enterprise Use Case} \\
+\midrule
+\textbf{E0: Centralized} & Perimeter defense only; vulnerable to server compromise and model inversion. & High pooled baseline ($0.5048 \pm 0.0175$) & Baseline hardware reference ($27.32 \pm 1.83$\,s) & None ($0.0$\,MB) & Reference baseline (Stability: $0.888$) & Single-tenant closed environments with no regulatory cross-silo barriers. \\
+\midrule
+\textbf{E1: Plaintext FL} & Prevents raw data central pooling; vulnerable to server $\mathcal{A}_{\text{server}}$, peers $\mathcal{A}_{\text{peer}}$, and observers $\mathcal{A}_{\text{external}}$. & High preservation ($0.5379 \pm 0.0268$) & Fast training ($25.33 \pm 1.71$\,s; agg: $0.04$\,s) & Baseline volume ($167.85$\,MB) & High fidelity to E0 (Cosine: $0.868$, Top-5: $0.579$) & Cooperative multi-branch consortia with fully trusted central aggregation coordinator. \\
+\midrule
+\textbf{E2: Differential Privacy (DP)} & Mitigates peers $\mathcal{A}_{\text{peer}}$ and downstream $\mathcal{A}_{\text{external}}$ on global model $\mathbf{w}_t$; \textbf{assumes Trusted Curator server} (no defense against $\mathcal{A}_{\text{server}}$). & Reduced to severe loss ($\sigma=0.5$: $0.3675$; $\sigma=2.0$: $0.4199$) & Low latency impact ($25.28\text{--}26.47$\,s) & Baseline volume ($167.85$\,MB) & Severe disruption (Cosine: $-0.02\text{--}0.12$) & Strict privacy compliance with trusted central coordinator accepting utility loss. \\
+\midrule
+\textbf{E3: Homomorphic Encryption (HE)} & Mitigates untrusted server $\mathcal{A}_{\text{server}}$ and eavesdroppers via ciphertext aggregation; \textbf{no DP guarantee} on decrypted $\mathbf{w}_T$. & Near-exact preservation ($0.5377 \pm 0.0279$) & $+24.52$\,s server agg. latency ($49.71$\,s total) & Very high payload ($3{,}610.90$\,MB, $21.51\times$) & High fidelity to E0 (Cosine: $0.869$, Top-5: $0.580$) & Zero-trust aggregation environments with high-bandwidth network infrastructure. \\
+\midrule
+\textbf{E4: Hybrid DP + HE} & \textbf{End-to-end multi-adversary defense}: blinds server $\mathcal{A}_{\text{server}}$ via CKKS, and bounds leakage to $\mathcal{A}_{\text{peer}}$ / $\mathcal{A}_{\text{external}}$ via DP noise. & Moderate loss under noise ($0.4109 \pm 0.0968$) & $+25.30$\,s server agg. latency ($51.15$\,s total) & Very high payload ($3{,}610.94$\,MB, $21.51\times$) & Moderate disruption under DP noise & Maximum privacy defense under untrusted server and untrusted model consumers; high compute/network budget. \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\textit{Source: Authors' own work. Note: $\mathcal{A}_{\text{server}}$ denotes honest-but-curious server inspecting parameter updates in transit; $\mathcal{A}_{\text{peer}}$ denotes participating client peers inspecting broadcasted global models; $\mathcal{A}_{\text{external}}$ denotes external observers querying the final model. Empirical defense validation against gradient inversion (DLG) and membership inference (MIA) is reported in Table~\ref{tab:attack_results}. Ranking utility, computation time, communication volume, and explainability metrics reflect empirical experimental measurements across 10 random seeds.}
+\end{table}

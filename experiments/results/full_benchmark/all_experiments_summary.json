@@ -1,0 +1,471 @@
+{
+  "E0": {
+    "configuration": "E0",
+    "description": "Centralized baseline without Federated Learning, DP, or HE",
+    "recommendation_metrics": {
+      "hit_rate@5": 0.9,
+      "precision@5": 0.8759999999999999,
+      "recall@5": 0.23117365807896065,
+      "ndcg@5": 0.4604657608527697,
+      "map@5": 0.9735555555555554,
+      "hit_rate@10": 0.9,
+      "precision@10": 0.836,
+      "recall@10": 0.40444541528388417,
+      "ndcg@10": 0.5352265072321137,
+      "map@10": 0.9399656084656085,
+      "hit_rate@20": 0.9,
+      "precision@20": 0.7509999999999999,
+      "recall@20": 0.6372995676050106,
+      "ndcg@20": 0.6369527486432012,
+      "map@20": 0.9239471272217444
+    },
+    "performance_metrics": {
+      "total_training_time_sec": 801.335,
+      "local_training_time_sec": 801.335,
+      "aggregation_time_sec": 0.0,
+      "communication_time_sec": 0.0,
+      "inference_time_sec": 5.135,
+      "total_execution_time_sec": 801.335,
+      "peak_memory_mb": 51.05,
+      "communication_kb_sent": 0.0,
+      "communication_kb_received": 0.0,
+      "he_keygen_time_sec": 0.0,
+      "he_encryption_time_sec": 0.0,
+      "he_computation_time_sec": 0.0,
+      "he_decryption_time_sec": 0.0,
+      "he_ciphertext_size_kb": 0.0,
+      "dp_epsilon": null,
+      "dp_delta": null,
+      "dp_clipping_norm": null,
+      "dp_noise_multiplier": null
+    },
+    "explainability_metrics": {
+      "shap": {
+        "generation_time_sec": 0.61,
+        "avg_time_per_explanation_sec": 0.0203,
+        "num_model_evaluations": 50
+      },
+      "lime": {
+        "generation_time_sec": 3.824,
+        "avg_time_per_explanation_sec": 0.1275,
+        "num_model_evaluations": 15000
+      },
+      "fidelity": {
+        "shap_mean_fidelity_delta": 4.792841891447703,
+        "shap_max_fidelity_delta": 7.930931091308594
+      },
+      "stability": {
+        "stability_cosine_sim": 0.7036865259494647,
+        "stability_spearman_corr": 0.2550003256323745,
+        "stability_top5_agreement": 0.30952380952380953
+      },
+      "attribution_similarity_to_fl_baseline": {
+        "shap_cosine_similarity": 1.0,
+        "shap_spearman_rank_corr": 1.0,
+        "shap_top5_agreement": 1.0
+      }
+    }
+  },
+  "E1": {
+    "configuration": "E1",
+    "description": "Federated Learning baseline (FedAvg) without DP or HE",
+    "recommendation_metrics": {
+      "hit_rate@5": 0.9,
+      "precision@5": 0.868,
+      "recall@5": 0.2315267361145514,
+      "ndcg@5": 0.5201964194280554,
+      "map@5": 0.950074074074074,
+      "hit_rate@10": 0.9,
+      "precision@10": 0.8340000000000001,
+      "recall@10": 0.4158138142367566,
+      "ndcg@10": 0.594830362759607,
+      "map@10": 0.930405839702136,
+      "hit_rate@20": 0.9,
+      "precision@20": 0.755,
+      "recall@20": 0.6484675036116563,
+      "ndcg@20": 0.6840346052034748,
+      "map@20": 0.931017037818715
+    },
+    "performance_metrics": {
+      "total_training_time_sec": 25.357,
+      "local_training_time_sec": 25.094,
+      "aggregation_time_sec": 0.047,
+      "communication_time_sec": 0.0,
+      "inference_time_sec": 5.416,
+      "total_execution_time_sec": 25.357,
+      "peak_memory_mb": 3.65,
+      "communication_kb_sent": 171884.77,
+      "communication_kb_received": 171884.77,
+      "he_keygen_time_sec": 0.0,
+      "he_encryption_time_sec": 0.0,
+      "he_computation_time_sec": 0.0,
+      "he_decryption_time_sec": 0.0,
+      "he_ciphertext_size_kb": 0.0,
+      "dp_epsilon": null,
+      "dp_delta": null,
+      "dp_clipping_norm": null,
+      "dp_noise_multiplier": null
+    },
+    "explainability_metrics": {
+      "shap": {
+        "generation_time_sec": 0.68,
+        "avg_time_per_explanation_sec": 0.0227,
+        "num_model_evaluations": 50
+      },
+      "lime": {
+        "generation_time_sec": 4.42,
+        "avg_time_per_explanation_sec": 0.1473,
+        "num_model_evaluations": 15000
+      },
+      "fidelity": {
+        "shap_mean_fidelity_delta": 4.907915474971135,
+        "shap_max_fidelity_delta": 8.494329452514648
+      },
+      "stability": {
+        "stability_cosine_sim": 0.9694322121215432,
+        "stability_spearman_corr": 0.6970293468764308,
+        "stability_top5_agreement": 0.5079365079365079
+      },
+      "attribution_similarity_to_fl_baseline": {
+        "shap_cosine_similarity": 0.8291707292898522,
+        "shap_spearman_rank_corr": 0.4110684672497641,
+        "shap_top5_agreement": 0.48201058201058194
+      }
+    }
+  },
+  "E2_DP1": {
+    "configuration": "E2_DP1",
+    "description": "Federated Learning with Differential Privacy (DP-1)",
+    "recommendation_metrics": {
+      "hit_rate@5": 0.9,
+      "precision@5": 0.7160000000000001,
+      "recall@5": 0.16161446865393014,
+      "ndcg@5": 0.4499052647669082,
+      "map@5": 0.7675555555555553,
+      "hit_rate@10": 0.9,
+      "precision@10": 0.604,
+      "recall@10": 0.2430540421217242,
+      "ndcg@10": 0.5055443835976527,
+      "map@10": 0.6348783068783069,
+      "hit_rate@20": 0.9,
+      "precision@20": 0.48699999999999993,
+      "recall@20": 0.35408032467495354,
+      "ndcg@20": 0.5673973616307921,
+      "map@20": 0.5229870451997645
+    },
+    "performance_metrics": {
+      "total_training_time_sec": 26.245,
+      "local_training_time_sec": 25.873,
+      "aggregation_time_sec": 0.187,
+      "communication_time_sec": 0.0,
+      "inference_time_sec": 5.409,
+      "total_execution_time_sec": 26.245,
+      "peak_memory_mb": 3.63,
+      "communication_kb_sent": 171884.77,
+      "communication_kb_received": 171884.77,
+      "he_keygen_time_sec": 0.0,
+      "he_encryption_time_sec": 0.0,
+      "he_computation_time_sec": 0.0,
+      "he_decryption_time_sec": 0.0,
+      "he_ciphertext_size_kb": 0.0,
+      "dp_epsilon": 11.1677,
+      "dp_delta": 1e-05,
+      "dp_clipping_norm": 1.0,
+      "dp_noise_multiplier": 0.5
+    },
+    "explainability_metrics": {
+      "shap": {
+        "generation_time_sec": 0.817,
+        "avg_time_per_explanation_sec": 0.0272,
+        "num_model_evaluations": 50
+      },
+      "lime": {
+        "generation_time_sec": 13.059,
+        "avg_time_per_explanation_sec": 0.4353,
+        "num_model_evaluations": 15000
+      },
+      "fidelity": {
+        "shap_mean_fidelity_delta": 0.40348463455835976,
+        "shap_max_fidelity_delta": 1.4275189638137817
+      },
+      "stability": {
+        "stability_cosine_sim": 0.9015297958407892,
+        "stability_spearman_corr": 0.2904499540863177,
+        "stability_top5_agreement": 0.36904761904761907
+      },
+      "attribution_similarity_to_fl_baseline": {
+        "shap_cosine_similarity": 0.10928672729377377,
+        "shap_spearman_rank_corr": 0.12084844552594269,
+        "shap_top5_agreement": 0.21917989417989417
+      }
+    }
+  },
+  "E2_DP2": {
+    "configuration": "E2_DP2",
+    "description": "Federated Learning with Differential Privacy (DP-2)",
+    "recommendation_metrics": {
+      "hit_rate@5": 0.56,
+      "precision@5": 0.292,
+      "recall@5": 0.057090047276510444,
+      "ndcg@5": 0.30949262683059436,
+      "map@5": 0.2985925925925926,
+      "hit_rate@10": 0.66,
+      "precision@10": 0.222,
+      "recall@10": 0.07861052345303665,
+      "ndcg@10": 0.3384835428245061,
+      "map@10": 0.20082980599647268,
+      "hit_rate@20": 0.72,
+      "precision@20": 0.146,
+      "recall@20": 0.09969022746797333,
+      "ndcg@20": 0.3862680982597724,
+      "map@20": 0.12513026290092732
+    },
+    "performance_metrics": {
+      "total_training_time_sec": 42.817,
+      "local_training_time_sec": 42.183,
+      "aggregation_time_sec": 0.314,
+      "communication_time_sec": 0.0,
+      "inference_time_sec": 5.087,
+      "total_execution_time_sec": 42.817,
+      "peak_memory_mb": 3.62,
+      "communication_kb_sent": 171884.77,
+      "communication_kb_received": 171884.77,
+      "he_keygen_time_sec": 0.0,
+      "he_encryption_time_sec": 0.0,
+      "he_computation_time_sec": 0.0,
+      "he_decryption_time_sec": 0.0,
+      "he_ciphertext_size_kb": 0.0,
+      "dp_epsilon": 5.1151,
+      "dp_delta": 1e-05,
+      "dp_clipping_norm": 1.0,
+      "dp_noise_multiplier": 1.0
+    },
+    "explainability_metrics": {
+      "shap": {
+        "generation_time_sec": 0.608,
+        "avg_time_per_explanation_sec": 0.0203,
+        "num_model_evaluations": 50
+      },
+      "lime": {
+        "generation_time_sec": 4.38,
+        "avg_time_per_explanation_sec": 0.146,
+        "num_model_evaluations": 15000
+      },
+      "fidelity": {
+        "shap_mean_fidelity_delta": 3.6104947408040364,
+        "shap_max_fidelity_delta": 11.43659496307373
+      },
+      "stability": {
+        "stability_cosine_sim": 0.9047209173708636,
+        "stability_spearman_corr": 0.4516988062442608,
+        "stability_top5_agreement": 0.5079365079365079
+      },
+      "attribution_similarity_to_fl_baseline": {
+        "shap_cosine_similarity": 0.18425394509587906,
+        "shap_spearman_rank_corr": 0.17540713039169603,
+        "shap_top5_agreement": 0.2615079365079365
+      }
+    }
+  },
+  "E2_DP3": {
+    "configuration": "E2_DP3",
+    "description": "Federated Learning with Differential Privacy (DP-3)",
+    "recommendation_metrics": {
+      "hit_rate@5": 0.06,
+      "precision@5": 0.02,
+      "recall@5": 0.008633958633958633,
+      "ndcg@5": 0.2837008528276814,
+      "map@5": 0.020444444444444446,
+      "hit_rate@10": 0.12,
+      "precision@10": 0.024000000000000004,
+      "recall@10": 0.01642937309603976,
+      "ndcg@10": 0.31825603480843173,
+      "map@10": 0.01569135802469136,
+      "hit_rate@20": 0.18,
+      "precision@20": 0.02,
+      "recall@20": 0.027369806617118447,
+      "ndcg@20": 0.3688988218326261,
+      "map@20": 0.014153605112669441
+    },
+    "performance_metrics": {
+      "total_training_time_sec": 25.607,
+      "local_training_time_sec": 25.216,
+      "aggregation_time_sec": 0.195,
+      "communication_time_sec": 0.0,
+      "inference_time_sec": 5.608,
+      "total_execution_time_sec": 25.607,
+      "peak_memory_mb": 3.62,
+      "communication_kb_sent": 171884.77,
+      "communication_kb_received": 171884.77,
+      "he_keygen_time_sec": 0.0,
+      "he_encryption_time_sec": 0.0,
+      "he_computation_time_sec": 0.0,
+      "he_decryption_time_sec": 0.0,
+      "he_ciphertext_size_kb": 0.0,
+      "dp_epsilon": 2.4403,
+      "dp_delta": 1e-05,
+      "dp_clipping_norm": 1.0,
+      "dp_noise_multiplier": 2.0
+    },
+    "explainability_metrics": {
+      "shap": {
+        "generation_time_sec": 0.657,
+        "avg_time_per_explanation_sec": 0.0219,
+        "num_model_evaluations": 50
+      },
+      "lime": {
+        "generation_time_sec": 4.361,
+        "avg_time_per_explanation_sec": 0.1454,
+        "num_model_evaluations": 15000
+      },
+      "fidelity": {
+        "shap_mean_fidelity_delta": 6.187605539957683,
+        "shap_max_fidelity_delta": 18.645591735839844
+      },
+      "stability": {
+        "stability_cosine_sim": 0.7906294044593482,
+        "stability_spearman_corr": 0.4888540578195751,
+        "stability_top5_agreement": 0.5079365079365079
+      },
+      "attribution_similarity_to_fl_baseline": {
+        "shap_cosine_similarity": -0.018518212860393204,
+        "shap_spearman_rank_corr": 0.08642331704954807,
+        "shap_top5_agreement": 0.2552910052910053
+      }
+    }
+  },
+  "E3": {
+    "configuration": "E3",
+    "description": "Federated Learning with Homomorphic Encryption (CKKS)",
+    "recommendation_metrics": {
+      "hit_rate@5": 0.9,
+      "precision@5": 0.868,
+      "recall@5": 0.2315267361145514,
+      "ndcg@5": 0.5203913293570808,
+      "map@5": 0.950074074074074,
+      "hit_rate@10": 0.9,
+      "precision@10": 0.8340000000000001,
+      "recall@10": 0.4158138142367566,
+      "ndcg@10": 0.5955925447701971,
+      "map@10": 0.9301677444640407,
+      "hit_rate@20": 0.9,
+      "precision@20": 0.755,
+      "recall@20": 0.6484675036116563,
+      "ndcg@20": 0.6850483775475182,
+      "map@20": 0.9308301667740008
+    },
+    "performance_metrics": {
+      "total_training_time_sec": 51.849,
+      "local_training_time_sec": 25.936,
+      "aggregation_time_sec": 25.441,
+      "communication_time_sec": 0.0,
+      "inference_time_sec": 5.404,
+      "total_execution_time_sec": 51.849,
+      "peak_memory_mb": 3.63,
+      "communication_kb_sent": 3697903.78,
+      "communication_kb_received": 171884.77,
+      "he_keygen_time_sec": 0.2927,
+      "he_encryption_time_sec": 20.8802,
+      "he_computation_time_sec": 3.3875,
+      "he_decryption_time_sec": 0.9925,
+      "he_ciphertext_size_kb": 3526019.02,
+      "dp_epsilon": null,
+      "dp_delta": null,
+      "dp_clipping_norm": null,
+      "dp_noise_multiplier": null
+    },
+    "explainability_metrics": {
+      "shap": {
+        "generation_time_sec": 0.489,
+        "avg_time_per_explanation_sec": 0.0163,
+        "num_model_evaluations": 50
+      },
+      "lime": {
+        "generation_time_sec": 3.315,
+        "avg_time_per_explanation_sec": 0.1105,
+        "num_model_evaluations": 15000
+      },
+      "fidelity": {
+        "shap_mean_fidelity_delta": 4.890138870477676,
+        "shap_max_fidelity_delta": 8.465883255004883
+      },
+      "stability": {
+        "stability_cosine_sim": 0.8501227809713564,
+        "stability_spearman_corr": 0.6226839479812486,
+        "stability_top5_agreement": 0.5873015873015873
+      },
+      "attribution_similarity_to_fl_baseline": {
+        "shap_cosine_similarity": 0.828109620567601,
+        "shap_spearman_rank_corr": 0.4193095556582568,
+        "shap_top5_agreement": 0.47407407407407404
+      }
+    }
+  },
+  "E4": {
+    "configuration": "E4",
+    "description": "Combined Federated Learning with Differential Privacy (DP-2) and Homomorphic Encryption (CKKS)",
+    "recommendation_metrics": {
+      "hit_rate@5": 0.82,
+      "precision@5": 0.512,
+      "recall@5": 0.1240186100195487,
+      "ndcg@5": 0.366936978976031,
+      "map@5": 0.4733333333333333,
+      "hit_rate@10": 0.86,
+      "precision@10": 0.48599999999999993,
+      "recall@10": 0.22803632669687776,
+      "ndcg@10": 0.43031808175650005,
+      "map@10": 0.4232614148540075,
+      "hit_rate@20": 0.88,
+      "precision@20": 0.385,
+      "recall@20": 0.3449919027507234,
+      "ndcg@20": 0.4952411747589822,
+      "map@20": 0.35292048362213974
+    },
+    "performance_metrics": {
+      "total_training_time_sec": 50.626,
+      "local_training_time_sec": 24.713,
+      "aggregation_time_sec": 25.421,
+      "communication_time_sec": 0.0,
+      "inference_time_sec": 5.139,
+      "total_execution_time_sec": 50.626,
+      "peak_memory_mb": 3.63,
+      "communication_kb_sent": 3697418.34,
+      "communication_kb_received": 171884.77,
+      "he_keygen_time_sec": 0.272,
+      "he_encryption_time_sec": 20.5394,
+      "he_computation_time_sec": 3.294,
+      "he_decryption_time_sec": 0.9837,
+      "he_ciphertext_size_kb": 3525533.58,
+      "dp_epsilon": 5.1151,
+      "dp_delta": 1e-05,
+      "dp_clipping_norm": 1.0,
+      "dp_noise_multiplier": 1.0
+    },
+    "explainability_metrics": {
+      "shap": {
+        "generation_time_sec": 0.508,
+        "avg_time_per_explanation_sec": 0.0169,
+        "num_model_evaluations": 50
+      },
+      "lime": {
+        "generation_time_sec": 3.416,
+        "avg_time_per_explanation_sec": 0.1139,
+        "num_model_evaluations": 15000
+      },
+      "fidelity": {
+        "shap_mean_fidelity_delta": 0.19105209906895956,
+        "shap_max_fidelity_delta": 1.0496591329574585
+      },
+      "stability": {
+        "stability_cosine_sim": 0.5053701841379047,
+        "stability_spearman_corr": 0.20494904509660442,
+        "stability_top5_agreement": 0.30952380952380953
+      },
+      "attribution_similarity_to_fl_baseline": {
+        "shap_cosine_similarity": -0.11142421839500359,
+        "shap_spearman_rank_corr": -0.0739329660503842,
+        "shap_top5_agreement": 0.14947089947089948
+      }
+    }
+  }
+}
