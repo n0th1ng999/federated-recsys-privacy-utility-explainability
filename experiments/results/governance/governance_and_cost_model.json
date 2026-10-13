@@ -93,35 +93,59 @@
     }
   },
   "cloud_cost_and_carbon": {
+    "E0_Centralized": {
+      "monthly_compute_sec": 0.0,
+      "monthly_compute_cost_usd": 0.0,
+      "monthly_transfer_gb": 0.0,
+      "monthly_egress_cost_usd": 0.0,
+      "monthly_tco_usd": 0.0,
+      "monthly_energy_kwh": 0.0,
+      "monthly_carbon_gco2eq": 0.0
+    },
     "E1_Plaintext": {
+      "monthly_compute_sec": 6.3,
+      "monthly_compute_cost_usd": 0.0006,
       "monthly_transfer_gb": 24.59,
       "monthly_egress_cost_usd": 2.21,
-      "monthly_energy_kwh": 0.1237,
-      "monthly_carbon_gco2eq": 47.63
+      "monthly_tco_usd": 2.21,
+      "monthly_energy_kwh": 0.1233,
+      "monthly_carbon_gco2eq": 47.45
     },
     "E2_DP": {
+      "monthly_compute_sec": 28.2,
+      "monthly_compute_cost_usd": 0.0027,
       "monthly_transfer_gb": 24.59,
       "monthly_egress_cost_usd": 2.21,
-      "monthly_energy_kwh": 0.1265,
-      "monthly_carbon_gco2eq": 48.69
+      "monthly_tco_usd": 2.22,
+      "monthly_energy_kwh": 0.1243,
+      "monthly_carbon_gco2eq": 47.87
     },
     "E3_CKKS_HE_Full": {
+      "monthly_compute_sec": 3677.4,
+      "monthly_compute_cost_usd": 0.3473,
       "monthly_transfer_gb": 528.94,
       "monthly_egress_cost_usd": 47.6,
-      "monthly_energy_kwh": 2.6753,
-      "monthly_carbon_gco2eq": 1030.01
+      "monthly_tco_usd": 47.95,
+      "monthly_energy_kwh": 2.8286,
+      "monthly_carbon_gco2eq": 1089.0
     },
     "E3_CKKS_TopK_10pct": {
+      "monthly_compute_sec": 367.5,
+      "monthly_compute_cost_usd": 0.0347,
       "monthly_transfer_gb": 50.39,
       "monthly_egress_cost_usd": 4.54,
-      "monthly_energy_kwh": 0.255,
-      "monthly_carbon_gco2eq": 98.18
+      "monthly_tco_usd": 4.57,
+      "monthly_energy_kwh": 0.2703,
+      "monthly_carbon_gco2eq": 104.08
     },
     "E4_Hybrid_Full": {
+      "monthly_compute_sec": 3795.3,
+      "monthly_compute_cost_usd": 0.3584,
       "monthly_transfer_gb": 528.95,
       "monthly_egress_cost_usd": 47.61,
-      "monthly_energy_kwh": 2.6764,
-      "monthly_carbon_gco2eq": 1030.4
+      "monthly_tco_usd": 47.96,
+      "monthly_energy_kwh": 2.8345,
+      "monthly_carbon_gco2eq": 1091.28
     }
   }
 }

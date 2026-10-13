@@ -126,22 +126,32 @@ def compute_mcda_rankings() -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# 2. Cloud Egress Cost and Operational Carbon Footprint Model
+# 2. Literature-Grounded Cloud TCO and Operational Carbon Footprint Model
 # ---------------------------------------------------------------------------
 def compute_cloud_egress_and_carbon(
     num_clients: int = 100,
     cadence_days_per_month: int = 30,
-    rounds_per_training: int = 15,
+    batch_clients: int = 20,
 ) -> Dict[str, Any]:
     """
-    Calculates monthly egress data volume, cloud provider cost (AWS/GCP/Azure standard egress: $0.09/GB),
-    and operational carbon emission (based on 0.385 kg CO2e / kWh and datacenter PUE 1.2).
+    Calculates monthly compute runtime, cloud provider compute cost (AWS c5.2xlarge @ $0.340/hr),
+    monthly egress data volume, network egress cost (AWS/GCP/Azure standard egress: $0.090/GB),
+    total monthly TCO, and operational greenhouse gas carbon footprint (PUE 1.2, 150W server draw,
+    0.005 kWh/GB transmission energy, and 385 gCO2e/kWh grid intensity).
+
+    Literature Grounding:
+    1. Cloud TCO Architecture: Armbrust et al. (2010) CACM & Bonawitz et al. (2019) SysML.
+       TCO = C_compute + C_egress
+    2. Datacenter & Transmission Carbon Accounting: Patterson et al. (2021) CACM & Aslan et al. (2018).
+       Carbon = (E_compute + E_net) * I_grid
     """
-    # Baseline communication volumes per 15-round training (MB):
+    # Baseline communication volumes per 15-round training job (MB):
+    # E0: Centralized (0 MB transmitted over WAN)
     # E1 / E2: 167.85 MB
     # E3 / E4: 3,610.90 MB
     # E3 Top-K (K=10%): 344.00 MB
     payloads_mb = {
+        "E0_Centralized": 0.0,
         "E1_Plaintext": 167.85,
         "E2_DP": 167.85,
         "E3_CKKS_HE_Full": 3610.90,
@@ -149,35 +159,54 @@ def compute_cloud_egress_and_carbon(
         "E4_Hybrid_Full": 3610.94,
     }
 
-    cost_per_gb = 0.09  # Tier 1 AWS/GCP standard egress rate ($/GB)
-    kwh_per_gb_transfer = 0.005  # Average network transmission energy: ~0.005 kWh/GB
-    grid_carbon_intensity = 385.0  # Global average grid intensity: ~385 gCO2e / kWh
-    server_watt_hours_per_sec = 150.0 / 3600.0  # 150W server compute draw
-
-    # Latencies per round (server aggregation seconds)
+    # Dedicated server aggregation time per 15-round job (seconds) measured on benchmark
     agg_times_sec = {
-        "E1_Plaintext": 0.042 * rounds_per_training,
-        "E2_DP": 0.188 * rounds_per_training,
+        "E0_Centralized": 0.0,
+        "E1_Plaintext": 0.042,
+        "E2_DP": 0.188,
         "E3_CKKS_HE_Full": 24.516,
         "E3_CKKS_TopK_10pct": 2.450,
         "E4_Hybrid_Full": 25.302,
     }
 
-    results = {}
-    for arch, mb_per_job in payloads_mb.items():
-        total_gb_month = (mb_per_job * (num_clients / 20.0) * cadence_days_per_month) / 1024.0
-        egress_cost_usd = total_gb_month * cost_per_gb
+    client_scaling = num_clients / float(batch_clients)  # 100 / 20 = 5.0
 
-        # Compute energy
-        server_sec = agg_times_sec[arch] * cadence_days_per_month
-        compute_kwh = (server_sec * server_watt_hours_per_sec) / 1000.0
-        network_kwh = total_gb_month * kwh_per_gb_transfer
+    # FinOps and Environmental Constants
+    compute_hourly_rate = 0.340  # Dedicated AWS EC2 c5.2xlarge ($0.340 / hour)
+    cost_per_gb_egress = 0.090  # Tier 1 AWS/GCP/Azure standard Internet egress ($0.090 / GB)
+    pue = 1.2  # Datacenter Power Usage Effectiveness (Patterson et al., 2021)
+    server_power_w = 150.0  # Enterprise server power draw (150 Watts)
+    kwh_per_gb_transfer = 0.005  # Transmission electricity intensity: 0.005 kWh/GB (Aslan et al., 2018)
+    grid_carbon_intensity = 385.0  # Global average grid intensity: 385 gCO2e / kWh (IEA, 2022)
+
+    results = {}
+    for arch in payloads_mb:
+        mb_per_job = payloads_mb[arch]
+        t_agg_job = agg_times_sec[arch]
+
+        # Monthly compute latency and cost
+        monthly_compute_sec = t_agg_job * client_scaling * cadence_days_per_month
+        monthly_compute_cost_usd = (monthly_compute_sec / 3600.0) * compute_hourly_rate
+
+        # Monthly network egress volume and cost
+        monthly_transfer_gb = (mb_per_job * client_scaling * cadence_days_per_month) / 1024.0
+        monthly_egress_cost_usd = monthly_transfer_gb * cost_per_gb_egress
+
+        # Total Monthly TCO
+        monthly_tco_usd = monthly_compute_cost_usd + monthly_egress_cost_usd
+
+        # Operational Energy (kWh) and Carbon Footprint (gCO2eq)
+        compute_kwh = (monthly_compute_sec * server_power_w * pue) / (3600.0 * 1000.0)
+        network_kwh = monthly_transfer_gb * kwh_per_gb_transfer
         total_kwh = compute_kwh + network_kwh
         carbon_g = total_kwh * grid_carbon_intensity
 
         results[arch] = {
-            "monthly_transfer_gb": round(total_gb_month, 2),
-            "monthly_egress_cost_usd": round(egress_cost_usd, 2),
+            "monthly_compute_sec": round(monthly_compute_sec, 2),
+            "monthly_compute_cost_usd": round(monthly_compute_cost_usd, 4),
+            "monthly_transfer_gb": round(monthly_transfer_gb, 2),
+            "monthly_egress_cost_usd": round(monthly_egress_cost_usd, 2),
+            "monthly_tco_usd": round(monthly_tco_usd, 2),
             "monthly_energy_kwh": round(total_kwh, 4),
             "monthly_carbon_gco2eq": round(carbon_g, 2),
         }
@@ -208,9 +237,18 @@ def main():
         for arch, score in sorted(scores.items(), key=lambda x: -x[1]):
             print(f"  {arch:25s}: {score:.3f}")
 
-    print("\n--- Monthly Cloud Cost & Carbon (100 clients, 30 days) ---")
+    print("\n--- Monthly Cloud TCO Breakdown & Carbon (100 clients, 30 days) ---")
+    print(f"  {'Architecture':22s} | {'Compute':>8s} | {'Egress':>8s} | {'Total TCO':>10s} | {'Transfer':>9s} | {'Carbon':>10s}")
+    print("  " + "-" * 75)
     for arch, metrics in cost_carbon.items():
-        print(f"  {arch:22s}: {metrics['monthly_transfer_gb']:8.2f} GB | ${metrics['monthly_egress_cost_usd']:6.2f} | {metrics['monthly_carbon_gco2eq']:7.1f} gCO2eq")
+        print(
+            f"  {arch:22s} | "
+            f"${metrics['monthly_compute_cost_usd']:7.4f} | "
+            f"${metrics['monthly_egress_cost_usd']:7.2f} | "
+            f"${metrics['monthly_tco_usd']:9.2f} | "
+            f"{metrics['monthly_transfer_gb']:7.2f}GB | "
+            f"{metrics['monthly_carbon_gco2eq']:7.1f} g"
+        )
 
 
 if __name__ == "__main__":
