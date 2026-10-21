@@ -12,8 +12,8 @@ benchmarks, privacy attacks, sparsification sweeps, and figures reported in the 
 
 Usage:
   python reproduce.py --mode smoke           # 60s fast sanity check across configs
-  python reproduce.py --mode figures         # Regenerate Figures 1 through 8
-  python reproduce.py --mode tables          # Regenerate Tables I through XII
+  python reproduce.py --mode figures         # Regenerate Figures 1 through 6
+  python reproduce.py --mode tables          # Regenerate Tables I through VIII & S1-S3
   python reproduce.py --mode attacks         # Run MIA & DLG empirical privacy attacks
   python reproduce.py --mode sparsification  # Run TenSEAL Top-K sparsification benchmark
   python reproduce.py --mode xai             # Run advanced XAI faithfulness & agreement
@@ -65,11 +65,19 @@ def run_smoke_test() -> int:
 
 
 def run_figures() -> int:
-    banner("Regenerating Manuscript Figures 1 through 8")
+    banner("Regenerating Manuscript Figures 1 through 6 (DTA Publication Layout)")
     t0 = time.perf_counter()
-    
-    # 1. Figures 1 through 6
-    print("Generating Figures 1 to 6 via plot_generator...")
+
+    # 1. Consolidated DTA Figures 1 through 6
+    print("Generating Consolidated Figures 1 to 6 via generate_dta_figures...")
+    cmd = [sys.executable, os.path.join(PROJECT_ROOT, "experiments/reporting/generate_dta_figures.py")]
+    ret = subprocess.call(cmd, cwd=PROJECT_ROOT)
+    if ret != 0:
+        print(f"[FAIL] generate_dta_figures exited with error code {ret}.")
+        return ret
+
+    # 2. Individual component plots
+    print("Generating individual component plots...")
     from experiments.reporting.plot_generator import generate_plots_from_10seeds
     generate_plots_from_10seeds(
         ten_seeds_json=os.path.join(PROJECT_ROOT, "experiments/results/10seeds_benchmark/ten_seeds_results.json"),
@@ -77,8 +85,6 @@ def run_figures() -> int:
         output_dir=os.path.join(PROJECT_ROOT, "Paper/figures"),
     )
 
-    # 2. Figures 7 and 8
-    print("Generating Figures 7 (MIA/DLG Defense) & 8 (Top-K Pareto) via generate_new_figures...")
     from experiments.reporting.generate_new_figures import (
         generate_figure7_attacks,
         generate_figure8_sparsification,
@@ -87,7 +93,7 @@ def run_figures() -> int:
     generate_figure8_sparsification()
 
     elapsed = time.perf_counter() - t0
-    print(f"\n[OK] All Figures 1-8 generated in Paper/figures/ in {elapsed:.1f}s.")
+    print(f"\n[OK] All Manuscript figures generated in Paper/figures/ in {elapsed:.1f}s.")
     return 0
 
 

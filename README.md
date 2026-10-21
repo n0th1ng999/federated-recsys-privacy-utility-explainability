@@ -56,7 +56,7 @@ pip install -r requirements.txt
 The repository includes a master CLI runner ([`reproduce.py`](reproduce.py)) to reproduce all findings easily.
 
 ### 1. Instant Manuscript Figures Regeneration (< 5 seconds)
-Regenerate all 8 publication figures directly from the multi-seed empirical benchmark logs:
+Regenerate all 6 publication figures directly from the multi-seed empirical benchmark logs:
 ```bash
 python reproduce.py --mode figures
 ```
@@ -76,25 +76,25 @@ python reproduce.py --mode smoke
 ```
 
 ### 4. Empirical Privacy Defense Attacks (MIA & DLG Inversion)
-Replicate the Membership Inference Attack (MIA) shadow-model attack and Deep Leakage from Gradients (DLG) reconstruction attack (Table IX & Figure 8):
+Replicate the Membership Inference Attack (MIA) shadow-model attack and Deep Leakage from Gradients (DLG) reconstruction attack (Table V & Figure 5):
 ```bash
 python reproduce.py --mode attacks
 ```
 
 ### 5. TenSEAL Top-$K$ Parameter Sparsification Sweep
-Run the communication sparsification benchmark ($K \in \{100\%, 50\%, 20\%, 10\%, 5\%\}$) demonstrating $90\%$ bandwidth reduction with $125\%$ NDCG retention (Table X & Figure 7):
+Run the communication sparsification benchmark ($K \in \{100\%, 50\%, 20\%, 10\%, 5\%\}$) demonstrating $90\%$ bandwidth reduction with $125\%$ NDCG retention (Table VI & Figure 6):
 ```bash
 python reproduce.py --mode sparsification
 ```
 
 ### 6. Advanced XAI Faithfulness & Agreement Benchmark
-Run the marginal feature-permutation masking, faithfulness deletion AUC, and SHAP–LIME rank-agreement analysis (Table VII Panel B):
+Run the marginal feature-permutation masking, faithfulness deletion AUC, and SHAP–LIME rank-agreement analysis (Table IV Panel B & Figure 3):
 ```bash
 python reproduce.py --mode xai
 ```
 
 ### 7. Manuscript Integrity Validation
-Verify that all 33 Harvard citations and 18 cross-references in the LaTeX manuscript are balanced and resolved:
+Verify that all citations and cross-references in the LaTeX manuscript are balanced and resolved:
 ```bash
 python reproduce.py --mode validate
 ```
@@ -107,26 +107,23 @@ Every figure and table in the manuscript directly maps to its generating code an
 
 | Manuscript Item | Description | Generating Script / Module | Source Data File |
 | :--- | :--- | :--- | :--- |
-| **Table I** | Related Work Positioning | [`Paper/tables.tex`](Paper/tables.tex) | Conceptual synthesis |
-| **Table II** | Multi-Adversary Threat Model | [`Paper/tables.tex`](Paper/tables.tex) | Cryptographic assumptions |
-| **Table III** | Experimental Hyperparameters | [`experiments/config.py`](experiments/config.py) | Configuration contracts |
-| **Table IV** | Recommendation Accuracy (10 Seeds) | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `10seeds_results.json` |
-| **Table V** | Computational Overhead & RDP Budget | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `aggregated_summary.json` |
-| **Table VI** | Communication Expansion Breakdown | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `aggregated_summary.json` |
-| **Table VII** | XAI Metrics & Advanced Faithfulness | [`experiments/evaluation/run_advanced_xai_benchmark.py`](experiments/evaluation/run_advanced_xai_benchmark.py) | `advanced_xai_benchmark.json` |
-| **Table VIII** | Cross-Dataset Validation (MovieLens) | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `movielens/aggregated_summary.json` |
-| **Table IX** | Privacy Attack Defenses (MIA / DLG) | [`experiments/attacks/mia_attack.py`](experiments/attacks/mia_attack.py) | `mia_benchmark_results.json` |
-| **Table X** | Top-$K$ Parameter Sparsification | [`experiments/federated/run_topk_benchmark.py`](experiments/federated/run_topk_benchmark.py) | `topk_sparsification_results.json` |
-| **Table XI** | Cloud TCO & MCDA Enterprise Model | [`experiments/reporting/governance_and_cost.py`](experiments/reporting/governance_and_cost.py) | `governance_and_cost_model.json` |
-| **Table XII** | Practitioner Decision Guide | [`Paper/tables.tex`](Paper/tables.tex) | Multi-criteria synthesis |
-| **Figure 1** | NDCG@10 Ranking Accuracy by Config | [`experiments/reporting/plot_generator.py`](experiments/reporting/plot_generator.py) | `10seeds_results.json` |
-| **Figure 2** | Recall@10 Ranking Accuracy by Config | [`experiments/reporting/plot_generator.py`](experiments/reporting/plot_generator.py) | `10seeds_results.json` |
-| **Figure 3** | Training & Aggregation Overhead | [`experiments/reporting/plot_generator.py`](experiments/reporting/plot_generator.py) | `aggregated_summary.json` |
-| **Figure 4** | SHAP vs. LIME Generation Runtime | [`experiments/reporting/plot_generator.py`](experiments/reporting/plot_generator.py) | `aggregated_summary.json` |
-| **Figure 5** | Top-3 Masking Sensitivity & Stability | [`experiments/reporting/plot_generator.py`](experiments/reporting/plot_generator.py) | `aggregated_summary.json` |
-| **Figure 6** | Privacy–Utility–XAI Pareto Bubble Chart | [`experiments/reporting/plot_generator.py`](experiments/reporting/plot_generator.py) | `aggregated_summary.json` |
-| **Figure 7** | Top-$K$ Sparsification Pareto Frontier | [`experiments/reporting/generate_new_figures.py`](experiments/reporting/generate_new_figures.py) | `topk_sparsification_results.json` |
-| **Figure 8** | Empirical Attack Defense (MIA & DLG) | [`experiments/reporting/generate_new_figures.py`](experiments/reporting/generate_new_figures.py) | `mia_benchmark_results.json` |
+| **Table I** | Multi-Adversary Threat Model | [`Paper/tables.tex`](Paper/tables.tex) | Cryptographic assumptions |
+| **Table II** | Recommendation Accuracy (10 Seeds) | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `10seeds_results.json` |
+| **Table III** | Computational Overhead & RDP Budget | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `aggregated_summary.json` |
+| **Table IV** | XAI Metrics & Advanced Faithfulness | [`experiments/evaluation/run_advanced_xai_benchmark.py`](experiments/evaluation/run_advanced_xai_benchmark.py) | `advanced_xai_benchmark.json` |
+| **Table V** | Privacy Attack Defenses (MIA / DLG) | [`experiments/attacks/mia_attack.py`](experiments/attacks/mia_attack.py) | `mia_benchmark_results.json` |
+| **Table VI** | Top-$K$ Parameter Sparsification | [`experiments/federated/run_topk_benchmark.py`](experiments/federated/run_topk_benchmark.py) | `topk_sparsification_results.json` |
+| **Table VII** | Cloud TCO & MCDA Enterprise Model | [`experiments/reporting/governance_and_cost.py`](experiments/reporting/governance_and_cost.py) | `governance_and_cost_model.json` |
+| **Table VIII** | Practitioner Decision Guide | [`Paper/tables.tex`](Paper/tables.tex) | Multi-criteria synthesis |
+| **Table S1** | Related Work Positioning (Supplementary) | [`Paper/supplementary.tex`](Paper/supplementary.tex) | Conceptual synthesis |
+| **Table S2** | Complete Hyperparameters (Supplementary) | [`experiments/config.py`](experiments/config.py) | Configuration contracts |
+| **Table S3** | Cross-Dataset Validation (MovieLens-100k) | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `movielens/aggregated_summary.json` |
+| **Figure 1** | NDCG@10 & Recall@10 Ranking (2-Panel) | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `10seeds_results.json` |
+| **Figure 2** | Training Time & Server Overhead (2-Panel) | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `aggregated_summary.json` |
+| **Figure 3** | XAI Runtime, Masking & Stability (3-Panel) | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `aggregated_summary.json` |
+| **Figure 4** | Privacy–Utility–XAI Pareto Bubble Chart | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `aggregated_summary.json` |
+| **Figure 5** | Empirical Attack Defense (MIA & DLG) | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `mia_benchmark_results.json` |
+| **Figure 6** | Top-$K$ Sparsification Pareto Frontier | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `topk_sparsification_results.json` |
 
 ---
 
@@ -170,11 +167,13 @@ Every figure and table in the manuscript directly maps to its generating code an
 ├── tooling/                           # Manuscript QA tooling
 │   └── validate_manuscript.py         # Automated LaTeX citation & label auditor
 └── Paper/                             # Complete Manuscript & Artifacts
-    ├── main.tex                       # Primary LaTeX document
-    ├── tables.tex                     # Publication tables I through XII
-    ├── references.bib                 # Bibliography database (Harvard style)
-    ├── figures/                       # Rendered PDF & PNG publication figures
-    └── main.pdf                       # Fully rendered 45-page manuscript PDF
+    ├── main.tex                       # Primary LaTeX document (42 pages, <= 9,000 effective words)
+    ├── tables.tex                     # Publication tables I through VIII
+    ├── supplementary.tex              # Standalone Supplementary Appendix (Tables S1-S3)
+    ├── supplementary.pdf              # Compiled Supplementary Appendix PDF
+    ├── references.bib                 # Bibliography database (Harvard style with DOIs)
+    ├── figures/                       # Rendered PDF & PNG publication figures (Figures 1-6)
+    └── main.pdf                       # Fully rendered manuscript PDF (Emerald DTA format)
 ```
 
 ---
