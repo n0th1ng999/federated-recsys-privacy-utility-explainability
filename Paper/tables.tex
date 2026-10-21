@@ -54,7 +54,7 @@ E3: FedAvg with CKKS HE & $0.8485 \pm 0.0127$ & $0.3860 \pm 0.0161$ & $0.5377 \p
 E4: FedAvg with DP and HE & $0.3927 \pm 0.2368$ & $0.1587 \pm 0.1061$ & $0.4109 \pm 0.0968$ & $0.3843 \pm 0.2401$ & $0.6767 \pm 0.2731$ \\
 \bottomrule
 \end{tabularx}
-\par\smallskip\raggedright\textit{Source: Authors' own work. Evaluated across $N=10$ random seeds $\{42, \dots, 51\}$. Paired differences between Plaintext FedAvg (E1) and TenSEAL CKKS (E3) yield mean $\bar{d} = -0.00022 \pm 0.00289$ (NDCG@10 relative difference $-0.04\%$) with 95\% CI $[-0.00228, +0.00185]$ and Cohen's $d = -0.075$. Formal Two One-Sided Tests (TOST, $df=9$) establish equivalence within margin $\pm 0.01$ ($t_1=10.71, t_2=-11.18, p_{\text{TOST}}=1.01\times 10^{-6}$, observed power $1.0000$) and tighter margin $\pm 0.005$ ($t_1=5.24, t_2=-5.71, p_{\text{TOST}}=2.68\times 10^{-4}$). Minimum Detectable Effect at 80\% power is $0.00227$. Extended DP sweep across 5 noise multipliers confirms macroscopic noise sensitivity; unweighted macro-averaging preserves closed-form DP sensitivity ($\Delta_2 = C/m$).}
+\par\smallskip\raggedright\textit{Source: Authors' own work. Evaluated across $N=10$ random seeds $\{42, \dots, 51\}$. Paired differences between Plaintext FedAvg (E1) and TenSEAL CKKS (E3) yield mean $\bar{d} = -0.00022 \pm 0.00289$ (NDCG@10 relative difference $-0.04\%$) with 95\% CI $[-0.00228, +0.00185]$ and Cohen's $d = -0.075$. Formal Two One-Sided Tests (TOST, $df=9$) establish equivalence within margin $\pm 0.01$ ($t_1=10.71, t_2=-11.18, p_{\mathrm{TOST}}=1.01\times 10^{-6}$, observed power $1.0000$) and tighter margin $\pm 0.005$ ($t_1=5.24, t_2=-5.71, p_{\mathrm{TOST}}=2.68\times 10^{-4}$). Minimum Detectable Effect at 80\% power is $0.00227$. Extended DP sweep across 5 noise multipliers confirms macroscopic noise sensitivity; unweighted macro-averaging preserves closed-form DP sensitivity ($\Delta_2 = C/m$).}
 \end{table}
 
 \clearpage
@@ -193,11 +193,11 @@ $K = 5\%$ & $60.8$\,MB & $912.6$\,MB & $-95.0\%$ & $25.04$\,s & $0.6508$ & $124.
 \begin{table}[H]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{2.0pt}
-\renewcommand{\arraystretch}{1.10}
+\setlength{\tabcolsep}{3.0pt}
+\renewcommand{\arraystretch}{1.12}
 \caption{Multi-Criteria Decision Analysis (MCDA) enterprise governance scoring rubric and literature-grounded monthly cloud Total Cost of Ownership (TCO) and operational environmental carbon model.}
 \label{tab:governance_cost_results}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.0cm}*{6}{c}*{3}{Y}}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.8cm}*{6}{>{\centering\arraybackslash}p{0.95cm}}*{3}{Y}}
 \toprule
 \multicolumn{10}{@{}p{\linewidth}@{}}{\textbf{Panel A: Multi-Criteria Enterprise Governance Scoring Rubric (1--5 Likert Scale) and Persona Weightings}} \\
 \midrule
@@ -216,7 +216,7 @@ E3: CKKS Top-10\% & 4 & 5 & 4 & 4 & 4 & 3 & $\mathbf{4.200}$ & $3.500$ & $\mathb
 
 \vspace{0.4em}
 
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.0cm}*{6}{Y}}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.8cm}*{6}{Y}}
 \toprule
 \multicolumn{7}{@{}p{\linewidth}@{}}{\textbf{Panel B: Literature-Grounded Cloud Total Cost of Ownership (TCO) and Operational Carbon Footprint ($N=100$ clients, $30$ days)}} \\
 \midrule
@@ -238,20 +238,21 @@ E3: CKKS Top-10\% & $367.50$ & $\$0.0347$ & $50.39$ & $\$4.54$ & $\$4.57$ & $104
 % --------------------------------------------------
 % Table VIII: Practitioner Decision Guide
 % --------------------------------------------------
+\begin{landscape}
 \begin{table}[H]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{1.8pt}
-\renewcommand{\arraystretch}{1.20}
+\setlength{\tabcolsep}{4.0pt}
+\renewcommand{\arraystretch}{1.30}
 \caption{Architectural decision matrix: comparison of adversary scope, theoretical threat mitigations, measured ranking utility, measured systems overhead, and recommended operational use cases.}
 \label{tab:practitioner_guide}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}X}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}X}
 \toprule
-\shortstack{\textbf{Config. \&}\\\textbf{Paradigm}} & \shortstack{\textbf{Threat Model}\\\textbf{\& Scope}} & \shortstack{\textbf{Ranking}\\\textbf{NDCG@10}} & \shortstack{\textbf{Compute}\\\textbf{Overhead}} & \shortstack{\textbf{Network}\\\textbf{Footprint}} & \shortstack{\textbf{Audit \&}\\\textbf{Alignment}} & \shortstack{\textbf{Target}\\\textbf{Use Case}} \\
+\textbf{Config. \& Paradigm} & \textbf{Threat Model \& Scope} & \textbf{Ranking NDCG@10} & \textbf{Compute Overhead} & \textbf{Network Footprint} & \textbf{Audit \& Alignment} & \textbf{Target Use Case} \\
 \midrule
 \textbf{E0: Centralized} & Perimeter defense only; vulnerable to server compromise and model inversion. & High pooled baseline ($0.5048 \pm 0.0175$) & Baseline hardware reference ($27.32 \pm 1.83$\,s) & None ($0.0$\,MB) & Reference baseline (Stability: $0.888$) & Single-tenant closed environments with no regulatory cross-silo barriers. \\
 \midrule
-\textbf{\shortstack[l]{E1: Plain-\\text FL}} & Prevents raw data central pooling; vulnerable to server $\mathcal{A}_{\text{server}}$, peers $\mathcal{A}_{\text{peer}}$, and observers $\mathcal{A}_{\text{external}}$. & High preservation ($0.5379 \pm 0.0268$) & Fast training ($25.33 \pm 1.71$\,s; agg: $0.04$\,s) & Baseline volume ($167.85$\,MB) & High fidelity to E0 (Cosine: $0.868$, Top-5: $0.579$) & Cooperative multi-branch consortia with fully trusted central aggregation coordinator. \\
+\textbf{E1: Plaintext FL} & Prevents raw data central pooling; vulnerable to server $\mathcal{A}_{\text{server}}$, peers $\mathcal{A}_{\text{peer}}$, and observers $\mathcal{A}_{\text{external}}$. & High preservation ($0.5379 \pm 0.0268$) & Fast training ($25.33 \pm 1.71$\,s; agg: $0.04$\,s) & Baseline volume ($167.85$\,MB) & High fidelity to E0 (Cosine: $0.868$, Top-5: $0.579$) & Cooperative multi-branch consortia with fully trusted central aggregation coordinator. \\
 \midrule
 \textbf{E2: Differential Privacy (DP)} & Mitigates peers $\mathcal{A}_{\text{peer}}$ and downstream $\mathcal{A}_{\text{external}}$ on global model $\mathbf{w}_t$; \textbf{assumes Trusted Curator server} (no defense against $\mathcal{A}_{\text{server}}$). & Reduced to severe loss ($\sigma=0.5$: $0.3675$; $\sigma=2.0$: $0.4199$) & Low latency impact ($25.28$--$26.47$\,s) & Baseline volume ($167.85$\,MB) & Severe disruption (Cosine: $-0.02\text{--}0.12$) & Strict privacy compliance with trusted central coordinator accepting utility loss. \\
 \midrule
@@ -262,3 +263,4 @@ E3: CKKS Top-10\% & $367.50$ & $\$0.0347$ & $50.39$ & $\$4.54$ & $\$4.57$ & $104
 \end{tabularx}
 \par\smallskip\raggedright\textit{Source: Authors' own work. Note: $\mathcal{A}_{\text{server}}$ denotes honest-but-curious server inspecting parameter updates in transit; $\mathcal{A}_{\text{peer}}$ denotes participating client peers inspecting broadcasted global models; $\mathcal{A}_{\text{external}}$ denotes external observers querying the final model. Empirical defense validation against gradient inversion (DLG) and membership inference (MIA) is reported in Table~\ref{tab:attack_results}. Ranking utility, computation time, communication volume, and explainability metrics reflect empirical experimental measurements across 10 random seeds.}
 \end{table}
+\end{landscape}

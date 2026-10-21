@@ -18,6 +18,8 @@
 \usepackage{tabularx}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{newtxtext,newtxmath}
+\usepackage{pdflscape}
 
 \usepackage{algorithm}
 \usepackage{algpseudocode}
@@ -100,7 +102,7 @@ Recommender systems support product discovery and user engagement across e-comme
 
 Federated Learning (FL) \cite{mcmahan2017communication,kairouz2021advances} provides an alternative in which model training is distributed across independent nodes, such as regional enterprise branches, partner retailers, or edge devices. In Horizontal Federated Learning (HFL), clients share a common feature space but maintain disjoint user interaction sets. Each participant trains a local model replica and sends parameter updates, rather than raw records, to a coordinating server. The server commonly combines these updates through Federated Averaging (FedAvg) \cite{mcmahan2017communication}.
 
-Within the Environment Adaptive Recommendation System (EARS) project \cite{gaspar2025ears,gaspar2026literature}, FL is used to support collaborative model training across organizational data holders without pooling interaction records at a single coordinating server.
+The baseline relies on the open-source Environment Adaptive Recommendation System (EARS) architecture \cite{gaspar2025ears,gaspar2026literature}, where FL supports collaborative model training across organizational data holders without pooling interaction records at a single coordinating server.
 
 \subsection{The Privacy--Utility--Explainability Trilemma}
 
@@ -177,7 +179,7 @@ Homomorphic Encryption (HE), particularly the Cheon-Kim-Kim-Song (CKKS) scheme \
 
 \subsection{Explainable AI in Recommendation: SHAP and LIME}
 
-Explainable recommendation techniques can be intrinsic, with interpretability incorporated into the model design, or post-hoc, where a separate method analyzes a trained predictor \cite{ge2022explainable}. This study uses post-hoc feature attribution because the evaluated recommender is a multi-branch neural model \cite{gaspar2025ears}.
+Explainable recommendation techniques can be intrinsic, with interpretability incorporated into the model design, or post-hoc, where a separate method analyzes a trained predictor \cite{ge2022explainable}. This study uses post-hoc feature attribution because the evaluated recommender relies on the multi-branch neural architecture introduced by \citeasnoun{gaspar2025ears}.
 \begin{itemize}
     \item \textbf{KernelSHAP} \cite{lundberg2017unified}: Approximates Shapley feature attributions through a weighted linear regression constructed around the Shapley value formulation:
     \begin{equation}
@@ -206,7 +208,7 @@ Prior work shows that explanation methods can be sensitive to privacy mechanisms
 
 \subsection{System Architecture}
 
-The recommendation engine implements the hybrid neural architecture developed within the Environment Adaptive Recommendation System (EARS) platform \cite{gaspar2025ears}. Denoted as \\ \texttt{CoreHybridRecSys}, the model comprises three heterogeneous input branches:
+The recommendation engine implements the hybrid neural architecture from the open-source Environment Adaptive Recommendation System (EARS) platform \cite{gaspar2025ears}. Denoted as \texttt{CoreHybridRecSys}, the model comprises three heterogeneous input branches:
 \begin{enumerate}
     \item \textbf{User State Branch:} Processes temporal customer behavioral summaries, including $8$ dynamic intent features (interest strength, active view share, cart mass, focus concentration) and $6$ historical ownership metrics (budget coverage, cycle ratios) through dense feed-forward layers.
     \item \textbf{Collaborative Branch:} Maps categorical user and product IDs to latent embedding spaces ($\mathbb{R}^{32}$), complemented by $6$ collaborative channel support features.
