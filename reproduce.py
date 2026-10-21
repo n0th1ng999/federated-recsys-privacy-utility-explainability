@@ -78,13 +78,13 @@ def run_figures() -> int:
     )
 
     # 2. Figures 7 and 8
-    print("Generating Figures 7 (Top-K Pareto) & 8 (MIA/DLG Defense) via generate_new_figures...")
+    print("Generating Figures 7 (MIA/DLG Defense) & 8 (Top-K Pareto) via generate_new_figures...")
     from experiments.reporting.generate_new_figures import (
-        generate_figure7_sparsification,
-        generate_figure8_attacks,
+        generate_figure7_attacks,
+        generate_figure8_sparsification,
     )
-    generate_figure7_sparsification()
-    generate_figure8_attacks()
+    generate_figure7_attacks()
+    generate_figure8_sparsification()
 
     elapsed = time.perf_counter() - t0
     print(f"\n[OK] All Figures 1-8 generated in Paper/figures/ in {elapsed:.1f}s.")

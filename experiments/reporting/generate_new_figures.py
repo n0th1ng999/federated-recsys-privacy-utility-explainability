@@ -34,8 +34,8 @@ def apply_theme(ax: plt.Axes, grid_axis: str = "both") -> None:
     ax.tick_params(colors="#333333", width=1.1, labelsize=10.5)
 
 
-def generate_figure7_sparsification():
-    """Generates Figure 7: Top-K Sparsification Pareto Frontier."""
+def generate_figure8_sparsification():
+    """Generates Figure 8: Top-K Sparsification Pareto Frontier."""
     json_path = "experiments/results/sparsification/topk_sparsification_results.json"
     if not os.path.exists(json_path):
         print(f"Warning: {json_path} not found.")
@@ -127,16 +127,16 @@ def generate_figure7_sparsification():
     fig.suptitle("TenSEAL CKKS Homomorphic Encryption Top-K Parameter Sparsification", fontsize=13.5, fontweight="bold", y=1.02)
     plt.tight_layout()
 
-    out_pdf = os.path.join(OUTPUT_DIR, "figure7_topk_sparsification_pareto.pdf")
-    out_png = os.path.join(OUTPUT_DIR, "figure7_topk_sparsification_pareto.png")
+    out_pdf = os.path.join(OUTPUT_DIR, "figure8_topk_sparsification_pareto.pdf")
+    out_png = os.path.join(OUTPUT_DIR, "figure8_topk_sparsification_pareto.png")
     plt.savefig(out_pdf, bbox_inches="tight")
     plt.savefig(out_png, bbox_inches="tight")
     plt.close()
-    print(f"Generated Figure 7: {out_pdf} and {out_png}")
+    print(f"Generated Figure 8: {out_pdf} and {out_png}")
 
 
-def generate_figure8_attacks():
-    """Generates Figure 8: Empirical Privacy Attack Defense (DLG & MIA)."""
+def generate_figure7_attacks():
+    """Generates Figure 7: Empirical Privacy Attack Defense (DLG & MIA)."""
     configs = ["E1: Plaintext", "E2: DP (σ=0.5)", "E2: DP (σ=1.0)", "E2: DP (σ=2.0)", "E3: CKKS HE", "E4: Hybrid"]
 
     # DLG metrics
@@ -185,14 +185,14 @@ def generate_figure8_attacks():
     fig.suptitle("Empirical Privacy Attack Defense Validation: Resolving Adversary Scope", fontsize=13.5, fontweight="bold", y=1.02)
     plt.tight_layout()
 
-    out_pdf = os.path.join(OUTPUT_DIR, "figure8_attack_validation_dlg_mia.pdf")
-    out_png = os.path.join(OUTPUT_DIR, "figure8_attack_validation_dlg_mia.png")
+    out_pdf = os.path.join(OUTPUT_DIR, "figure7_attack_validation_dlg_mia.pdf")
+    out_png = os.path.join(OUTPUT_DIR, "figure7_attack_validation_dlg_mia.png")
     plt.savefig(out_pdf, bbox_inches="tight")
     plt.savefig(out_png, bbox_inches="tight")
     plt.close()
-    print(f"Generated Figure 8: {out_pdf} and {out_png}")
+    print(f"Generated Figure 7: {out_pdf} and {out_png}")
 
 
 if __name__ == "__main__":
-    generate_figure7_sparsification()
-    generate_figure8_attacks()
+    generate_figure7_attacks()
+    generate_figure8_sparsification()
