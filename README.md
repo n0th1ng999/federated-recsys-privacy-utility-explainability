@@ -82,7 +82,7 @@ python reproduce.py --mode attacks
 ```
 
 ### 5. TenSEAL Top-$K$ Parameter Sparsification Sweep
-Run the communication sparsification benchmark ($K \in \{100\%, 50\%, 20\%, 10\%, 5\%\}$) demonstrating $90\%$ bandwidth reduction with $125\%$ NDCG retention (Table VI & Figure 6):
+Run the communication sparsification benchmark ($K \in$ {100%, 50%, 20%, 10%, 5%}) demonstrating 90% bandwidth reduction with 125% NDCG retention (Table VI & Figure 6):
 ```bash
 python reproduce.py --mode sparsification
 ```
@@ -167,7 +167,7 @@ Every figure and table in the manuscript directly maps to its generating code an
 ├── tooling/                           # Manuscript QA tooling
 │   └── validate_manuscript.py         # Automated LaTeX citation & label auditor
 └── Paper/                             # Complete Manuscript & Artifacts
-    ├── main.tex                       # Primary LaTeX document (42 pages, <= 9,000 effective words)
+    ├── main.tex                       # Primary LaTeX document (39 pages, <= 9,000 effective words)
     ├── tables.tex                     # Publication tables I through VIII
     ├── supplementary.tex              # Standalone Supplementary Appendix (Tables S1-S3)
     ├── supplementary.pdf              # Compiled Supplementary Appendix PDF
