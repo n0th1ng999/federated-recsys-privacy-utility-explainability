@@ -30,6 +30,29 @@ class PerformanceTracker:
     dp_delta: Optional[float] = None
     dp_clipping_norm: Optional[float] = None
     dp_noise_multiplier: Optional[float] = None
+    dp_noise_location: Optional[str] = None  # "server" (E2) | "client_distributed" (E4)
+    dp_epsilon_single_update_local: Optional[float] = None  # E4: one client's noisy update viewed alone
+    dp_accountant: Optional[str] = None
+    dp_clip_fraction: Optional[float] = None
+    dp_mean_preclip_norm: Optional[float] = None
+
+    # Aggregation rule actually used ("sample_weighted" | "uniform")
+    aggregation: Optional[str] = None
+
+    # Communication split by direction and content (bytes, whole job)
+    uplink_bytes: int = 0
+    downlink_model_bytes: int = 0
+    downlink_he_context_bytes: int = 0
+    downlink_mask_bytes: int = 0
+
+    # Top-K sparsification
+    topk_mode: str = "none"
+    topk_ratio: float = 1.0
+    topk_coordinates: int = 0
+    sparsification_time_sec: float = 0.0
+
+    # Rounds in which each training client (partition index) participated
+    client_participation: Dict[int, int] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -51,6 +74,21 @@ class PerformanceTracker:
             "dp_delta": self.dp_delta,
             "dp_clipping_norm": self.dp_clipping_norm,
             "dp_noise_multiplier": self.dp_noise_multiplier,
+            "dp_noise_location": self.dp_noise_location,
+            "dp_epsilon_single_update_local": self.dp_epsilon_single_update_local,
+            "dp_accountant": self.dp_accountant,
+            "dp_clip_fraction": self.dp_clip_fraction,
+            "dp_mean_preclip_norm": self.dp_mean_preclip_norm,
+            "aggregation": self.aggregation,
+            "uplink_bytes": self.uplink_bytes,
+            "downlink_model_bytes": self.downlink_model_bytes,
+            "downlink_he_context_bytes": self.downlink_he_context_bytes,
+            "downlink_mask_bytes": self.downlink_mask_bytes,
+            "topk_mode": self.topk_mode,
+            "topk_ratio": self.topk_ratio,
+            "topk_coordinates": self.topk_coordinates,
+            "sparsification_time_sec": round(self.sparsification_time_sec, 4),
+            "client_participation": {str(k): v for k, v in self.client_participation.items()},
         }
 
 

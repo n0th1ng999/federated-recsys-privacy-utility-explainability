@@ -36,60 +36,66 @@ PAIR_LEN = len(PAIR_CONTEXT_FEATURE_NAMES)
 
 class TabularRecSysModelWrapper:
     """
-    Wraps the PyTorch CoreHybridRecSys model so that standard tabular explainers
-    (SHAP KernelExplainer, LIME LimeTabularExplainer) can pass 2D numpy arrays
-    and receive 1D model predictions.
+    Exposes CoreHybridRecSys as f(x) on the 43 tabular summary features so that
+    KernelSHAP and LIME can query it.
+
+    The sequence (cluster) inputs are not part of the explained feature space. They
+    are held FIXED at the values of `template_sample` (the instance being explained),
+    so for that instance f(x) equals the real model's ranking score. Earlier versions
+    zeroed these inputs, which explained a different function.
+
+    Every call is counted (`num_calls`, `num_rows`) so explanation budgets are
+    reported as rows actually processed by the model.
     """
 
     def __init__(
         self,
         model: torch.nn.Module,
         device: torch.device,
-        template_batch: Dict[str, Any],
+        template_sample: Dict[str, Any],
     ):
         self.model = model
         self.device = device
         self.model.eval()
 
-        # Cache template cluster shapes and dimensions
-        intent_raw_shape = template_batch["user_state"]["intent_clusters"].shape
-        self.intent_seq_len = intent_raw_shape[-2]
-        self.intent_cluster_dim = intent_raw_shape[-1]
+        def _seq(val):
+            t = val if isinstance(val, torch.Tensor) else torch.as_tensor(np.asarray(val))
+            t = t.float()
+            return t if t.dim() == 2 else t.reshape(t.shape[-2], t.shape[-1])
 
-        ownership_raw_shape = template_batch["user_state"]["ownership_clusters"].shape
-        self.ownership_seq_len = ownership_raw_shape[-2]
-        self.ownership_cluster_dim = ownership_raw_shape[-1]
+        self.intent_clusters = _seq(template_sample["user_state"]["intent_clusters"]).to(device)
+        self.ownership_clusters = _seq(template_sample["user_state"]["ownership_clusters"]).to(device)
+        self.collab_clusters = _seq(template_sample["collaborative"]["clusters"]).to(device)
+        self.num_calls = 0
+        self.num_rows = 0
 
-        collab_raw_shape = template_batch["collaborative"]["clusters"].shape
-        self.collab_seq_len = collab_raw_shape[-2]
-        self.collab_cluster_dim = collab_raw_shape[-1]
+    def reset_counters(self) -> None:
+        self.num_calls = 0
+        self.num_rows = 0
 
     def __call__(self, x_np: np.ndarray) -> np.ndarray:
+        x_np = np.asarray(x_np, dtype=np.float64)
         if x_np.ndim == 1:
             x_np = x_np.reshape(1, -1)
-
         b_size = x_np.shape[0]
-        # Unpack tabular features into branch inputs
+        self.num_calls += 1
+        self.num_rows += b_size
+
         intent_x = torch.from_numpy(x_np[:, :INTENT_LEN]).float().to(self.device)
         ownership_x = torch.from_numpy(x_np[:, INTENT_LEN : INTENT_LEN + OWNERSHIP_LEN]).float().to(self.device)
         collab_x = torch.from_numpy(x_np[:, INTENT_LEN + OWNERSHIP_LEN : INTENT_LEN + OWNERSHIP_LEN + COLLAB_LEN]).float().to(self.device)
         pair_x = torch.from_numpy(x_np[:, INTENT_LEN + OWNERSHIP_LEN + COLLAB_LEN :]).float().to(self.device)
 
-        # Zero tensors for sequence cluster dimensions
-        intent_clusters = torch.zeros((b_size, self.intent_seq_len, self.intent_cluster_dim), device=self.device)
-        ownership_clusters = torch.zeros((b_size, self.ownership_seq_len, self.ownership_cluster_dim), device=self.device)
-        collab_clusters = torch.zeros((b_size, self.collab_seq_len, self.collab_cluster_dim), device=self.device)
-
         inputs = {
             "user_state": {
                 "intent_summary": intent_x,
                 "ownership_summary": ownership_x,
-                "intent_clusters": intent_clusters,
-                "ownership_clusters": ownership_clusters,
+                "intent_clusters": self.intent_clusters.unsqueeze(0).expand(b_size, -1, -1),
+                "ownership_clusters": self.ownership_clusters.unsqueeze(0).expand(b_size, -1, -1),
             },
             "collaborative": {
                 "channel_support": collab_x,
-                "clusters": collab_clusters,
+                "clusters": self.collab_clusters.unsqueeze(0).expand(b_size, -1, -1),
             },
             "pair_context": {
                 "context": pair_x,
@@ -98,8 +104,7 @@ class TabularRecSysModelWrapper:
 
         with torch.no_grad():
             _, rank_score, _ = self.model(inputs)
-            preds = rank_score.cpu().numpy().flatten()
-        return preds
+        return rank_score.cpu().numpy().flatten()
 
 
 def _to_flat_numpy(val: Any) -> np.ndarray:

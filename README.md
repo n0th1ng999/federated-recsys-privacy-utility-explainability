@@ -1,197 +1,92 @@
-# Privacy, Utility, and Explainability Trade-offs in Privacy-Preserving Federated Recommender Systems
+# Replication package
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
-[![TenSEAL CKKS](https://img.shields.io/badge/TenSEAL-0.3.16-brightgreen.svg)](https://github.com/OpenMined/TenSEAL)
-[![Target Journal](https://img.shields.io/badge/Target_Journal-Data_Technologies_and_Applications-purple.svg)](https://www.emerald.com/insight/publication/issn/2514-9342)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Privacy, Utility and Explainability Trade-offs in Privacy-Preserving Federated Recommender Systems (anonymised for review).
 
-This repository contains the **official, self-contained reproducibility package** for the paper:  
-> **"Privacy, Utility, and Explainability Trade-offs in Privacy-Preserving Federated Recommender Systems"**  
-> *Target Journal:* **Data Technologies and Applications (Emerald DTA)**
+This package contains the code, configurations, data and per-run results behind every number in the revised manuscript. It also contains the scripts that turn those results into the manuscript's tables and text values.
 
----
+## Contents
 
-## 📌 Repository Overview
+| Path | What it is |
+|---|---|
+| `experiments/config.py` | All configurations: E0, E1, E2 (σ = 1, 2, 4, 8), E3, E4 (σ = 4), Top-k variants |
+| `experiments/data/partitioner.py` | Temporal hold-out split, user groups, record hold-out for membership inference |
+| `experiments/data/movielens_adapter.py` | Downloads MovieLens-100k from GroupLens and converts it |
+| `experiments/federated/` | FL loop, central and distributed DP (`dp_engine.py`), CKKS secure aggregation (`he_engine.py`), shared-mask Top-k |
+| `experiments/attacks/membership.py` | Membership inference (client participation and record membership) |
+| `experiments/attacks/reconstruction.py` | Gradient inversion on the recommender, by observation scenario |
+| `experiments/run_controls.py` | Untrained-network and noise-only controls (initial model plus the exact E2 noise, 15 rounds) |
+| `experiments/evaluation/intervention_plausibility.py` | Nearest-neighbour distance of marginal and conditional replacements to real data |
+| `experiments/evaluation/xai_protocol.py` | KernelSHAP/LIME with measured budgets, removal curves, agreement with E0 |
+| `experiments/run_revision.py` | One dataset × one seed: train, evaluate, attack, explain; writes one JSON per configuration |
+| `experiments/run_sweep.py` | Runs all datasets and seeds; `--timing` runs the sequential timing pass |
+| `experiments/reporting/export_latex.py` | Builds every table and text value of the paper from the result files |
+| `experiments/tests/` | Checks of the accountant, noise calibration, CKKS aggregation, split disjointness and the XAI wrapper |
+| `experiments/results/v2/<dataset>/<config>/seed_<n>.json` | Per-run results with provenance (code hash, library versions, split) |
+| `experiments/results/v2/attacks/reconstruction_seed_<n>.json` | Gradient-inversion results per seed, including per-record values |
+| `experiments/results/v2_timing/` | Sequential timing runs used for the overhead and cost tables |
+| `experiments/results/v2/summary.json` | Machine-readable summary of every reported number |
+| `Paper/generated/` | Generated tables (`tab_*.tex`), text values (`results_macros.tex`), Figure S1 |
+| `data/` | Synthetic EARS dataset (no real personal data) |
 
-This package contains everything required to independently audit, benchmark, and reproduce all empirical results, privacy defense evaluations, communication mitigations, and explainability benchmarks across both benchmark datasets (**EARS** and **MovieLens-100k**).
+## Environment
 
-### Evaluated Configurations
-* **E0:** Centralized Learning (Full Data Colocation)
-* **E1:** Plaintext Federated Learning (FedAvg, 5 clients, 15 rounds)
-* **E2_DP1:** Federated Learning with DP ($\sigma = 0.5, \epsilon \approx 11.17$)
-* **E2_DP2:** Federated Learning with DP ($\sigma = 1.0, \epsilon \approx 5.12$)
-* **E2_DP3:** Federated Learning with DP ($\sigma = 2.0, \epsilon \approx 2.44$)
-* **E3:** Federated Learning with TenSEAL CKKS Homomorphic Encryption (HE)
-* **E4:** Hybrid Defense: Federated Learning with Differential Privacy + Homomorphic Encryption (DP+HE)
-
----
-
-## 🛠️ Environment Installation
-
-We recommend using **Conda** with Python 3.10.
-
-### Option A: Using Conda (Recommended)
 ```bash
-# 1. Create and activate the conda environment
 conda env create -f environment.yml
-conda activate recsys-reproducibility
+conda activate recsys-replication
 ```
 
-### Option B: Using Standard Python `venv`
+TenSEAL is required. The CKKS experiments refuse to run without it; there is no simulated fallback.
+
+## Reproducing the results
+
 ```bash
-# 1. Create and activate virtual environment
-python3.10 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# 2. Upgrade pip and install pinned requirements
-pip install --upgrade pip
-pip install -r requirements.txt
+python -m pytest experiments/tests                                  # sanity checks (about 1 minute)
+python experiments/run_sweep.py --workers 6                         # utility, MIA, explanations, Top-k: 2 datasets x 10 seeds
+python experiments/run_controls.py                                  # untrained-network and noise-only controls
+python experiments/evaluation/intervention_plausibility.py          # plausibility of marginal vs conditional replacement (EARS)
+python experiments/attacks/reconstruction.py                        # gradient inversion, 10 seeds
+python experiments/run_sweep.py --timing --workers 1 --datasets ears  # timing and volumes, sequential
+python experiments/reporting/export_latex.py                        # tables and values in Paper/generated
+sh Paper/build.sh                                                   # supplement first, then main (needs tectonic)
 ```
 
----
+`run_controls.py` and `intervention_plausibility.py` read the E0 SHAP attributions and splits written by the sweep, so run them after it.
 
-## 🚀 Quickstart Reproduction
+A single run looks like this:
 
-The repository includes a master CLI runner ([`reproduce.py`](reproduce.py)) to reproduce all findings easily.
-
-### 1. Instant Manuscript Figures Regeneration (< 5 seconds)
-Regenerate all 6 publication figures directly from the multi-seed empirical benchmark logs:
 ```bash
-python reproduce.py --mode figures
-```
-*Output:* Renders high-resolution PNG and PDF figures to [`Paper/figures/`](Paper/figures/).
-
-### 2. Instant Tables Regeneration
-Recompute all LaTeX and Markdown summary tables:
-```bash
-python reproduce.py --mode tables
-```
-*Output:* Formats Tables into `experiments/results/multiseed_benchmark/tables/`.
-
-### 3. Fast Smoke Test (~60 seconds)
-Run a micro-benchmark (2 rounds, 5 clients) across centralized, FedAvg, DP, and TenSEAL CKKS to confirm that PyTorch, Flower/Federated engine, and homomorphic encryption work end-to-end on your hardware:
-```bash
-python reproduce.py --mode smoke
+python experiments/run_revision.py --dataset ears --seed 42 --configs E1 E3
 ```
 
-### 4. Empirical Privacy Defense Attacks (MIA & DLG Inversion)
-Replicate the Membership Inference Attack (MIA) shadow-model attack and Deep Leakage from Gradients (DLG) reconstruction attack (Table V & Figure 5):
-```bash
-python reproduce.py --mode attacks
-```
+On a 12-core laptop CPU (no GPU used), the sweep takes about 1.5 hours with 6 workers. The reconstruction attack takes about 2.5 hours with 2 processes, and the timing pass about 2 hours. CKKS encryption uses fresh randomness, so E3 and E4 runs are not bit-identical across repetitions. Their differences are within CKKS approximation error.
 
-### 5. TenSEAL Top-$K$ Parameter Sparsification Sweep
-Run the communication sparsification benchmark ($K \in$ {100%, 50%, 20%, 10%, 5%}) demonstrating 90% bandwidth reduction with 125% NDCG retention (Table VI & Figure 6):
-```bash
-python reproduce.py --mode sparsification
-```
+## Which file produces which table
 
-### 6. Advanced XAI Faithfulness & Agreement Benchmark
-Run the marginal feature-permutation masking, faithfulness deletion AUC, and SHAP–LIME rank-agreement analysis (Table IV Panel B & Figure 3):
-```bash
-python reproduce.py --mode xai
-```
+| Manuscript | Generated file | Source results |
+|---|---|---|
+| Table I (guarantees) | `tab_guarantees.tex` | `v2/ears/E2_*`, `v2/ears/E4` |
+| Table II (utility) | `tab_utility.tex` | `v2/{ears,movielens}/*`, `baselines/` |
+| Table III (overhead) | `tab_overhead.tex` | `v2_timing/ears/*` |
+| Table IV (Top-k) | `tab_topk.tex` | `v2/ears/E*_topk*`, `v2_timing/ears/E*_topk*` |
+| Table V (membership inference) | `tab_mia.tex` | `membership_inference` field of `v2/ears/*` |
+| Table VI (gradient inversion) | `tab_dlg.tex` | `v2/attacks/reconstruction_seed_*.json` |
+| Table VII (explanations) | `tab_xai.tex` | `explainability` field of `v2/ears/*` |
+| Tables S3–S10, Figure S1 | `tab_seeds`, `tab_dp`, `tab_ml_detail`, `tab_xai_budget`, `tab_cost`, `tab_mcda`, `fig_removal_curves` | as above |
 
-### 7. Manuscript Integrity Validation
-Verify that all citations and cross-references in the LaTeX manuscript are balanced and resolved:
-```bash
-python reproduce.py --mode validate
-```
+## Design notes
 
----
+- **Privacy unit.** One client is one user, so client-level DP is user-level DP.
+- **Accounting.** Accounting uses `dp_accounting`'s RDP accountant for Gaussian noise with sampling without replacement. The neighbouring relation is replace-one, and the sensitivity of the uniform mean is 2C/m. Values are upper bounds.
+- **E4.** Each client adds noise with standard deviation σC/√m before encrypting. The guarantee on the released models assumes secure aggregation holds (see manuscript Section 3.3).
+- **Temporal split.** Nothing dated after the cutoff enters features, statistics or training.
 
-## 📊 Paper-to-Code Traceability Matrix
+## Provenance of the result files
 
-Every figure and table in the manuscript directly maps to its generating code and data:
+Each run file stores `provenance.code_sha256`, a hash over `experiments/` (excluding results and `legacy/`), `recommender_core/`, `support/` and `api_service/preprocess.py`. The released trees carry two hashes:
 
-| Manuscript Item | Description | Generating Script / Module | Source Data File |
-| :--- | :--- | :--- | :--- |
-| **Table I** | Multi-Adversary Threat Model | [`Paper/tables.tex`](Paper/tables.tex) | Cryptographic assumptions |
-| **Table II** | Recommendation Accuracy (10 Seeds) | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `10seeds_results.json` |
-| **Table III** | Computational Overhead & RDP Budget | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `aggregated_summary.json` |
-| **Table IV** | XAI Metrics & Advanced Faithfulness | [`experiments/evaluation/run_advanced_xai_benchmark.py`](experiments/evaluation/run_advanced_xai_benchmark.py) | `advanced_xai_benchmark.json` |
-| **Table V** | Privacy Attack Defenses (MIA / DLG) | [`experiments/attacks/mia_attack.py`](experiments/attacks/mia_attack.py) | `mia_benchmark_results.json` |
-| **Table VI** | Top-$K$ Parameter Sparsification | [`experiments/federated/run_topk_benchmark.py`](experiments/federated/run_topk_benchmark.py) | `topk_sparsification_results.json` |
-| **Table VII** | Cloud TCO & MCDA Enterprise Model | [`experiments/reporting/governance_and_cost.py`](experiments/reporting/governance_and_cost.py) | `governance_and_cost_model.json` |
-| **Table VIII** | Practitioner Decision Guide | [`Paper/tables.tex`](Paper/tables.tex) | Multi-criteria synthesis |
-| **Table S1** | Related Work Positioning (Supplementary) | [`Paper/supplementary.tex`](Paper/supplementary.tex) | Conceptual synthesis |
-| **Table S2** | Complete Hyperparameters (Supplementary) | [`experiments/config.py`](experiments/config.py) | Configuration contracts |
-| **Table S3** | Cross-Dataset Validation (MovieLens-100k) | [`experiments/reporting/table_generator.py`](experiments/reporting/table_generator.py) | `movielens/aggregated_summary.json` |
-| **Figure 1** | NDCG@10 & Recall@10 Ranking (2-Panel) | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `10seeds_results.json` |
-| **Figure 2** | Training Time & Server Overhead (2-Panel) | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `aggregated_summary.json` |
-| **Figure 3** | XAI Runtime, Masking & Stability (3-Panel) | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `aggregated_summary.json` |
-| **Figure 4** | Privacy–Utility–XAI Pareto Bubble Chart | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `aggregated_summary.json` |
-| **Figure 5** | Empirical Attack Defense (MIA & DLG) | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `mia_benchmark_results.json` |
-| **Figure 6** | Top-$K$ Sparsification Pareto Frontier | [`experiments/reporting/generate_dta_figures.py`](experiments/reporting/generate_dta_figures.py) | `topk_sparsification_results.json` |
+| Tree | Hash prefix | Differences from the released code |
+|---|---|---|
+| `results/v2/` | `798f606e92bc` | The public CKKS context still included Galois keys, which aggregation never uses. Context bytes in these files are therefore about 35 MB per client. Per-round ε was recomputed at every round instead of once at the end, which gives the same final value. |
+| `results/v2_timing/` | `7f551e2e8096` | None in training, DP, CKKS or evaluation code. |
 
----
-
-## 📂 Repository Directory Layout
-
-```text
-.
-├── reproduce.py                       # Unified CLI master reproduction runner
-├── requirements.txt                   # Pinned Python package dependencies
-├── environment.yml                    # Conda environment definition
-├── README.md                          # Reproduction dossier and guide
-├── LICENSE                            # MIT License
-├── data/                              # Benchmark Datasets (~48 MB uncompressed)
-│   ├── cart_events.csv                # EARS raw cart interactions
-│   ├── clientes.csv                   # EARS client metadata
-│   ├── order_items.csv                # EARS order line items
-│   ├── orders.csv                     # EARS purchase transactions
-│   ├── produtos.csv                   # EARS item catalog & categories
-│   ├── viewed_products.csv            # EARS implicit browsing interactions
-│   └── movielens/                     # MovieLens-100k benchmark dataset
-├── recommender_core/                  # Neural Recommender Architecture
-│   ├── Core_Model.py                  # PyTorch hybrid GNN / collaborative model
-│   ├── dataset.py                     # Feature graph materializer & twin cache
-│   └── train.py                       # Pairwise ranking loss & local SGD
-├── support/                           # Signal processing & contracts
-│   ├── feature_contract.py            # Feature dimensions & channel contracts
-│   ├── signal_utils.py                # Graph embeddings & text extraction
-│   └── twin_state.py                  # Customer-twin materialized states
-├── api_service/                       # Preprocessing pipeline
-│   └── preprocess.py                  # Generic tabular interaction preprocessor
-├── experiments/                       # Experimentation Suite
-│   ├── config.py                      # Configurations E0 through E4
-│   ├── run_experiments.py             # Single-seed experiment runner
-│   ├── run_multiseed_benchmark.py     # 10-seed multi-dataset runner
-│   ├── attacks/                       # MIA & DLG gradient inversion attacks
-│   ├── centralized/                   # Centralized training engine (E0)
-│   ├── federated/                     # FedAvg, DP Engine, TenSEAL CKKS HE
-│   ├── evaluation/                    # Ranking metrics, statistical power, XAI
-│   ├── reporting/                     # Plot and table generators
-│   └── results/                       # Empirical multi-seed benchmark logs (JSON)
-├── tooling/                           # Manuscript QA tooling
-│   └── validate_manuscript.py         # Automated LaTeX citation & label auditor
-└── Paper/                             # Complete Manuscript & Artifacts
-    ├── main.tex                       # Primary LaTeX document (39 pages, <= 9,000 effective words)
-    ├── tables.tex                     # Publication tables I through VIII
-    ├── supplementary.tex              # Standalone Supplementary Appendix (Tables S1-S3)
-    ├── supplementary.pdf              # Compiled Supplementary Appendix PDF
-    ├── references.bib                 # Bibliography database (Harvard style with DOIs)
-    ├── figures/                       # Rendered PDF & PNG publication figures (Figures 1-6)
-    └── main.pdf                       # Fully rendered manuscript PDF (Emerald DTA format)
-```
-
----
-
-## 💻 Hardware & Runtime Specifications
-
-* **Operating System:** Linux (Ubuntu 22.04+) or macOS (macOS 14+ tested).
-* **RAM:** Minimum 8 GB RAM (16 GB recommended for full 10-seed benchmarks).
-* **CPU/GPU:** Multi-core x86_64 or Apple Silicon ARM64. PyTorch CPU backend is fully supported and deterministic.
-* **Estimated Execution Runtimes:**
-  - Figure / Table regeneration: $\approx 3$ seconds.
-  - Smoke test: $\approx 60$ seconds.
-  - Empirical attack benchmark: $\approx 25$ seconds.
-  - Top-$K$ sparsification sweep: $\approx 40$ seconds.
-  - Full 10-seed multi-dataset evaluation: $\approx 2.5$ hours on 8-core CPU.
-
----
-
-## 📄 License & Attribution
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Training, DP noise, aggregation and evaluation are numerically identical across the two code states. Only the serialised context size and wall-clock time differ. For this reason, every byte count and timing in the paper (Tables III and IV, Table S8) comes from `v2_timing`, and `v2` supplies utility, attacks and explanations. The released code hashes to `26a0cfa5e7c1`. It differs from the `v2_timing` state only by the reporting, control and plausibility scripts and an empty `experiments/tests/__init__.py`, all added after both runs. The control (`v2/<dataset>/controls/`), plausibility (`v2/ears/plausibility/`) and baseline files do not store a code hash.

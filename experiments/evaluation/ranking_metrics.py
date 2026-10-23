@@ -79,9 +79,12 @@ def evaluate_model_ranking(
     device: torch.device,
     k_values: List[int] = [5, 10, 20],
     primary_k: int = 10,
+    relevance_threshold: float = 0.5,
 ) -> Dict[str, float]:
     """
     Evaluates the model across all evaluation users and averages the ranking metrics.
+    With the temporal holdout, labels are binary (1 = item purchased after the cutoff,
+    0 = sampled never-interacted item), so the default threshold is 0.5.
     """
     model.eval()
     user_metrics_list: List[Dict[str, float]] = []
@@ -113,7 +116,7 @@ def evaluate_model_ranking(
                 y_true=labels_rank,
                 y_pred=preds,
                 k_values=k_values,
-                relevance_threshold=2.5,
+                relevance_threshold=relevance_threshold,
             )
             if user_res:
                 user_metrics_list.append(user_res)
@@ -138,5 +141,47 @@ def evaluate_model_ranking(
     for key in all_keys:
         vals = [um[key] for um in user_metrics_list if not np.isnan(um[key])]
         aggregated[key] = float(np.mean(vals)) if vals else 0.0
+    aggregated["num_users"] = len(user_metrics_list)
+    aggregated["per_user"] = {
+        f"ndcg@{primary_k}": [float(um[f"ndcg@{primary_k}"]) for um in user_metrics_list],
+        f"recall@{primary_k}": [float(um[f"recall@{primary_k}"]) for um in user_metrics_list],
+    }
 
     return aggregated
+
+
+def evaluate_score_baseline(
+    eval_user_samples: Dict[int, List[int]],
+    dataset: Any,
+    item_scores: Dict[int, float],
+    k_values: List[int] = [5, 10, 20],
+    primary_k: int = 10,
+    relevance_threshold: float = 0.5,
+    random_repeats: int = 0,
+    seed: int = 0,
+) -> Dict[str, float]:
+    """
+    Non-learned reference rankings on the same candidates: items ordered by
+    `item_scores` (e.g. pre-cutoff popularity), or uniformly at random averaged over
+    `random_repeats` permutations when random_repeats > 0.
+    """
+    rng = np.random.default_rng(seed)
+    per_user = []
+    for _, idxs in eval_user_samples.items():
+        if len(idxs) < 2:
+            continue
+        y = np.asarray([float(dataset.sample_label_rank[i]) for i in idxs])
+        pids = [int(dataset.sample_product_ids[i]) for i in idxs]
+        if random_repeats > 0:
+            runs = [compute_ranking_metrics_for_user(y, rng.random(len(y)), k_values, relevance_threshold)
+                    for _ in range(random_repeats)]
+            per_user.append({k: float(np.nanmean([r[k] for r in runs])) for k in runs[0]})
+        else:
+            scores = np.asarray([item_scores.get(p, 0.0) for p in pids]) + 1e-9 * rng.random(len(pids))
+            per_user.append(compute_ranking_metrics_for_user(y, scores, k_values, relevance_threshold))
+    out = {}
+    for key in per_user[0]:
+        vals = [u[key] for u in per_user if not np.isnan(u[key])]
+        out[key] = float(np.mean(vals)) if vals else 0.0
+    out["num_users"] = len(per_user)
+    return out

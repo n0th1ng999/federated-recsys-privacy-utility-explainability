@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import os
 from typing import Any, Dict, Iterable, List, Optional
 
 import pandas as pd
@@ -10,6 +11,10 @@ TWIN_STATE_SCHEMA_VERSION = 2
 
 
 def to_utc_timestamp(value: Any = None) -> pd.Timestamp:
+    # RECSYS_REFERENCE_TIME pins "now" for offline experiments (temporal holdout cutoff),
+    # so recency features do not depend on the wall-clock date of the run.
+    if value is None:
+        value = os.environ.get("RECSYS_REFERENCE_TIME") or None
     ts = pd.Timestamp.utcnow() if value is None else pd.Timestamp(value)
     if ts.tzinfo is None:
         ts = ts.tz_localize("UTC")

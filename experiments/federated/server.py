@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import copy
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 
@@ -15,8 +14,23 @@ from recommender_core.Core_Model import CoreHybridRecSys
 
 class FederatedServer:
     """
-    Central orchestrator for Federated Learning rounds. Handles client update aggregation
-    using standard FedAvg, Differential Privacy, Homomorphic Encryption, or their combination.
+    Aggregation server for E1-E4.
+
+    Aggregation rules (as stated in Algorithm 1 of the manuscript):
+      * E1, E3: sample-weighted FedAvg, w_k = n_k / sum_j n_j.
+      * E2, E4: uniform mean over the m sampled clients (DP-FedAvg with fixed
+        denominator), so that the replace-one sensitivity of the mean is exactly 2C/m.
+
+    Where noise is added:
+      * E2 (central DP): the server receives each client's plaintext update, clips
+        it and adds noise to the mean. The server is therefore trusted; the DP
+        guarantee covers what is released AFTER aggregation (the global models).
+      * E4 (distributed DP under CKKS secure aggregation): clients clip and add
+        their share of the noise before encrypting (see fl_runner); this class
+        only sees ciphertexts.
+
+    `last_observation` keeps what each party saw in the most recent round, for the
+    reconstruction attacks.
     """
 
     def __init__(
@@ -32,7 +46,6 @@ class FederatedServer:
         self.global_model = CoreHybridRecSys(branch_dims=branch_dims)
         self.global_model.to(self.device)
 
-        # Differential privacy engine
         self.dp_engine: Optional[DPEngine] = None
         if config.dp.enabled:
             self.dp_engine = DPEngine(
@@ -41,7 +54,6 @@ class FederatedServer:
                 target_delta=config.dp.target_delta,
             )
 
-        # Homomorphic encryption engine
         self.he_engine: Optional[HEEngine] = None
         if config.he.enabled:
             self.he_engine = HEEngine(
@@ -50,124 +62,118 @@ class FederatedServer:
                 scale_bits=config.he.scale_bits,
             )
 
+        self.aggregation = "uniform" if config.dp.enabled else "sample_weighted"
+        self.last_observation: Dict[str, Any] = {}
+        self._clip_events: List[bool] = []
+        self._preclip_norms: List[float] = []
+
     def get_global_weights(self) -> Dict[str, torch.Tensor]:
         return {k: v.cpu().detach().clone() for k, v in self.global_model.state_dict().items()}
 
-    def aggregate_updates(
+    def aggregation_weights(self, sample_counts: List[int]) -> List[float]:
+        m = len(sample_counts)
+        if self.aggregation == "uniform":
+            return [1.0 / m] * m
+        total = max(1, sum(sample_counts))
+        return [cnt / total for cnt in sample_counts]
+
+    def record_clip(self, preclip_norm: float) -> None:
+        self._preclip_norms.append(preclip_norm)
+        self._clip_events.append(preclip_norm > self.config.dp.clipping_norm)
+
+    def clip_stats(self) -> Dict[str, Optional[float]]:
+        if not self._preclip_norms:
+            return {"clip_fraction": None, "mean_preclip_norm": None}
+        return {
+            "clip_fraction": float(np.mean(self._clip_events)),
+            "mean_preclip_norm": float(np.mean(self._preclip_norms)),
+        }
+
+    @staticmethod
+    def _weighted_sum(updates: List[Dict[str, torch.Tensor]], weights: List[float]) -> Dict[str, torch.Tensor]:
+        out = {}
+        for key in updates[0]:
+            out[key] = torch.stack([u[key] * w for u, w in zip(updates, weights)], dim=0).sum(dim=0)
+        return out
+
+    def aggregate_plaintext(
         self,
         client_updates: List[Dict[str, torch.Tensor]],
         sample_counts: List[int],
         tracker: PerformanceTracker,
     ) -> Dict[str, torch.Tensor]:
-        """
-        Aggregates client weight deltas into a global update according to the active configuration.
-        """
+        """E1 (weighted FedAvg) and E2 (central DP, uniform mean + server-side noise)."""
         agg_t0 = time.perf_counter()
-        num_clients = len(client_updates)
-        total_samples = sum(sample_counts)
-        weights = [cnt / max(1, total_samples) for cnt in sample_counts]
+        weights = self.aggregation_weights(sample_counts)
+        m = len(client_updates)
 
-        # -------------------------------------------------------------
-        # Branch 1: Differential Privacy (E2)
-        # -------------------------------------------------------------
-        if self.config.dp.enabled and not self.config.he.enabled:
+        if self.config.dp.enabled:
+            # The server sees these plaintext, un-noised updates (trusted curator).
+            self.last_observation = {"server_sees": "plaintext_client_updates", "client_updates": client_updates}
             clipped_updates = []
             for upd in client_updates:
-                clipped, _ = self.dp_engine.clip_update(upd)
+                clipped, norm = self.dp_engine.clip_update(upd)
+                self.record_clip(norm)
                 clipped_updates.append(clipped)
+            mean_update = self._weighted_sum(clipped_updates, weights)
+            noisy = self.dp_engine.add_gaussian_noise(mean_update, self.dp_engine.central_noise_std(m))
+            self.dp_engine.step_accounting(self.config.fl.num_clients, m)
+            self.last_observation["released_aggregate"] = noisy
+            tracker.aggregation_time_sec += time.perf_counter() - agg_t0
+            return noisy
 
-            # Weighted average of clipped updates
-            avg_update = {}
-            for key in clipped_updates[0]:
-                stacked = torch.stack([u[key] * w for u, w in zip(clipped_updates, weights)], dim=0)
-                avg_update[key] = stacked.sum(dim=0)
+        self.last_observation = {"server_sees": "plaintext_client_updates", "client_updates": client_updates}
+        avg = self._weighted_sum(client_updates, weights)
+        self.last_observation["released_aggregate"] = avg
+        tracker.aggregation_time_sec += time.perf_counter() - agg_t0
+        return avg
 
-            # Add calibrated Gaussian noise
-            noisy_update = self.dp_engine.add_noise_to_aggregated_update(
-                avg_update,
-                num_sampled_clients=num_clients,
-            )
-            q = num_clients / max(1, self.config.fl.num_clients)
-            self.dp_engine.step_accounting(q=q)
+    def aggregate_encrypted(
+        self,
+        client_payloads: List[List[bytes]],
+        sample_counts: List[int],
+        packed_len: int,
+        tracker: PerformanceTracker,
+    ) -> np.ndarray:
+        """
+        E3 and E4 (and shared-mask Top-K): homomorphic aggregation without the secret key,
+        then key-holder decryption. Returns the decrypted packed vector (length packed_len).
+        """
+        agg_t0 = time.perf_counter()
+        weights = self.aggregation_weights(sample_counts)
 
-            tracker.aggregation_time_sec += (time.perf_counter() - agg_t0)
-            return noisy_update
+        enc_agg, comp_t, agg_bytes = self.he_engine.server_aggregate(client_payloads, weights)
+        tracker.he_computation_time_sec += comp_t
 
-        # -------------------------------------------------------------
-        # Branch 2: Homomorphic Encryption (E3)
-        # -------------------------------------------------------------
-        if self.config.he.enabled and not self.config.dp.enabled:
-            tracker.he_keygen_time_sec = self.he_engine.keygen_time_sec
-            encrypted_updates = []
-            shapes = None
+        dec_flat, dec_t = self.he_engine.key_holder_decrypt(enc_agg, packed_len)
+        tracker.he_decryption_time_sec += dec_t
 
-            for upd in client_updates:
-                flat, shapes = self.he_engine.flatten_weights(upd)
-                enc_vec, enc_t, ct_size = self.he_engine.encrypt_vector(flat)
-                encrypted_updates.append(enc_vec)
-                tracker.he_encryption_time_sec += enc_t
-                tracker.he_ciphertext_size_bytes += ct_size
-                tracker.communication_bytes_sent += ct_size
+        if self.config.dp.enabled:
+            self.dp_engine.step_accounting(self.config.fl.num_clients, len(client_payloads))
 
-            # Homomorphic addition in ciphertext domain
-            enc_aggregate, comp_t = self.he_engine.homomorphic_aggregate(encrypted_updates, weights)
-            tracker.he_computation_time_sec += comp_t
+        self.last_observation = {
+            "server_sees": "ciphertexts_only",
+            "ciphertext_bytes_per_client": [sum(len(b) for b in p) for p in client_payloads],
+            "key_holder_sees": "decrypted_aggregate",
+        }
+        tracker.aggregation_time_sec += time.perf_counter() - agg_t0
+        return dec_flat
 
-            # Decryption
-            dec_flat, dec_t = self.he_engine.decrypt_vector(enc_aggregate)
-            tracker.he_decryption_time_sec += dec_t
-
-            final_update = self.he_engine.unflatten_weights(dec_flat, shapes, device=torch.device("cpu"))
-            tracker.aggregation_time_sec += (time.perf_counter() - agg_t0)
-            return final_update
-
-        # -------------------------------------------------------------
-        # Branch 3: Combined DP + HE (E4)
-        # -------------------------------------------------------------
-        if self.config.he.enabled and self.config.dp.enabled:
-            tracker.he_keygen_time_sec = self.he_engine.keygen_time_sec
-            encrypted_updates = []
-            shapes = None
-
-            for upd in client_updates:
-                # Client-side clipping and DP noise injection before encryption
-                clipped, _ = self.dp_engine.clip_update(upd)
-                local_noisy = self.dp_engine.add_noise_to_aggregated_update(
-                    clipped,
-                    num_sampled_clients=num_clients,
-                )
-                flat, shapes = self.he_engine.flatten_weights(local_noisy)
-                enc_vec, enc_t, ct_size = self.he_engine.encrypt_vector(flat)
-                encrypted_updates.append(enc_vec)
-                tracker.he_encryption_time_sec += enc_t
-                tracker.he_ciphertext_size_bytes += ct_size
-                tracker.communication_bytes_sent += ct_size
-
-            # Homomorphic aggregation
-            enc_aggregate, comp_t = self.he_engine.homomorphic_aggregate(encrypted_updates, weights)
-            tracker.he_computation_time_sec += comp_t
-
-            # Decryption
-            dec_flat, dec_t = self.he_engine.decrypt_vector(enc_aggregate)
-            tracker.he_decryption_time_sec += dec_t
-
-            q = num_clients / max(1, self.config.fl.num_clients)
-            self.dp_engine.step_accounting(q=q)
-
-            final_update = self.he_engine.unflatten_weights(dec_flat, shapes, device=torch.device("cpu"))
-            tracker.aggregation_time_sec += (time.perf_counter() - agg_t0)
-            return final_update
-
-        # -------------------------------------------------------------
-        # Branch 4: Standard FedAvg (E1 Baseline)
-        # -------------------------------------------------------------
-        avg_update = {}
-        for key in client_updates[0]:
-            stacked = torch.stack([u[key] * w for u, w in zip(client_updates, weights)], dim=0)
-            avg_update[key] = stacked.sum(dim=0)
-
-        tracker.aggregation_time_sec += (time.perf_counter() - agg_t0)
-        return avg_update
+    def aggregate_sparse_plaintext(
+        self,
+        client_sparse: List[tuple],
+        sample_counts: List[int],
+        full_len: int,
+        tracker: PerformanceTracker,
+    ) -> np.ndarray:
+        """Per-client Top-K in plaintext: weighted scatter-add of (indices, values)."""
+        agg_t0 = time.perf_counter()
+        weights = self.aggregation_weights(sample_counts)
+        out = np.zeros(full_len, dtype=np.float64)
+        for (idx, vals), w in zip(client_sparse, weights):
+            np.add.at(out, idx, w * vals)
+        tracker.aggregation_time_sec += time.perf_counter() - agg_t0
+        return out
 
     def apply_update(self, global_update: Dict[str, torch.Tensor]) -> None:
         """Applies aggregated update to the global model: W = W + Delta."""

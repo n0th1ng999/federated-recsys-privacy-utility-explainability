@@ -1,8 +1,6 @@
-name: recsys-reproducibility
+name: recsys-replication
 channels:
-  - pytorch
   - conda-forge
-  - defaults
 dependencies:
   - python=3.10
   - pip

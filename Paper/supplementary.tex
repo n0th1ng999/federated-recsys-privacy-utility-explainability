@@ -1,155 +1,149 @@
 \documentclass[11pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{booktabs}
 \usepackage{tabularx}
-\usepackage{multirow}
+\usepackage{array}
 \usepackage{float}
+\usepackage{graphicx}
 \usepackage{amsmath,amssymb}
 \usepackage{newtxtext,newtxmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{caption}
 \usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
 
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    citecolor=blue,
-    urlcolor=blue
-}
+% Supplementary items are cited from the main text as "Table S<n>", "Figure S<n>", "Algorithm S<n>".
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thealgorithm}{S\arabic{algorithm}}
 
-\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\input{generated/results_macros.tex}
 
-\title{\textbf{Supplementary Materials:\\
-Privacy, Utility, and Explainability Trade-offs in\\
-Privacy-Preserving Federated Recommender Systems}}
-
+\title{\textbf{Supplementary material}\\[0.3em]Privacy, Utility and Explainability Trade-offs in Privacy-Preserving Federated Recommender Systems}
 \author{Anonymous submission}
 \date{}
 
 \begin{document}
-
 \maketitle
 
-\section*{Overview}
-This document provides supplementary tables and technical specifications supporting the manuscript submitted to \textit{Data Technologies and Applications} (Emerald Publishing). The contents include:
+\noindent Every table in this document except S1 and S2 is generated from the per-run result files by \path{experiments/reporting/export_latex.py} in the replication repository, which also contains the result file of every configuration and seed.
+
 \begin{itemize}
-    \item \textbf{Table~S1:} Comprehensive literature positioning comparing selected federated recommendation, privacy, and explainability studies.
-    \item \textbf{Table~S2:} Complete system hyperparameter specifications across model architecture, federated learning, differential privacy, homomorphic encryption, and post-hoc explainers.
-    \item \textbf{Table~S3:} Cross-dataset validation comparing empirical ranking, latency, and explanation sensitivity metrics between the proprietary enterprise e-commerce benchmark (EARS) and the public movie benchmark (MovieLens-100k).
+\item S1 Related work; S2 Hyperparameters; S3 Experiments and seeds; Algorithm S1 Training procedure
+\item S4 Differential-privacy accounting
+\item S5 MovieLens-100k detail
+\item S6 Explainer budgets; S7 Plausibility of interventions; Figure S1 Removal curves
+\item S8 Cost model; S9--S11 MCDA scores, scoring basis and sensitivity
 \end{itemize}
 
-\vspace{1.5em}
-
-% --------------------------------------------------
-% Table S1: Related Work Positioning
 % --------------------------------------------------
 \begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Comparison of selected studies in federated recommendation, privacy, and explainability.}
+\caption{Comparison of selected studies in federated recommendation, privacy and explainability.}
 \label{tab:supp_related_work}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.0cm}*{6}{Y}}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.0cm}*{6}{>{\centering\arraybackslash}X}}
 \toprule
-\textbf{Study} & \textbf{FL Setting} & \textbf{HE Scheme} & \textbf{DP Analysis} & \textbf{XAI Methods} & \textbf{Ranking Metrics} & \textbf{Trade-off Analysis} \\
+Study & FL setting & HE & DP & XAI & Evaluation & Trade-off analysis \\
 \midrule
 Tan et al. (2020) & FedAvg & None & None & None & Top-$K$ ranking & Not reported \\
-Minto et al. (2021) & Secure aggregation & Paillier/CKKS & None & None & NDCG, Recall & Communication--utility \\
+Minto et al. (2021) & Secure aggregation & Paillier/CKKS & None & None & nDCG, Recall & Communication--utility \\
 Javeed et al. (2023) & FedAvg & None & Gaussian DP & None & MSE, Precision & Privacy--utility \\
-Saha et al. (2024) & Survey & Conceptual & Conceptual & None & Not applicable & Qualitative review \\
-Shin et al. (2023) & FedAvg & None & Latent DP & None & Hit Rate, NDCG & Privacy--utility \\
+Saha et al. (2023) & Survey & Conceptual & Conceptual & None & n/a & Qualitative \\
+Shin et al. (2023) & FedAvg & None & Latent DP & None & Hit rate, nDCG & Privacy--utility \\
 Gaspar et al. (2025) & FedAvg & None & None & SHAP, LIME & Accuracy, RMSE & XAI--accuracy \\
-Gaspar et al. (2026) & Review & Partial & Partial & None & Not applicable & Literature synthesis \\
-\textbf{This study} & \textbf{FedAvg} & \textbf{TenSEAL CKKS} & \textbf{Client RDP ($\sigma \in \{0.5, 1.0, 2.0\}$)} & \textbf{KernelSHAP, LIME} & \textbf{P, R, NDCG, MAP, HR} & \textbf{Four-axis comparison} \\
+Gaspar et al. (2026) & Review & Partial & Partial & None & n/a & Literature synthesis \\
+This study & FedAvg, 20 clients & CKKS (TenSEAL), aligned Top-$k$ & Client-level central and distributed DP, RDP accounting & KernelSHAP, LIME; fidelity and divergence & nDCG, Recall on temporal hold-out; MIA; gradient inversion & Utility, cost, leakage, explanations, MCDA \\
 \bottomrule
 \end{tabularx}
-\par\smallskip\raggedright\textit{Source: Authors' own work.}
+\par\smallskip\raggedright\footnotesize\textit{Source: Authors' own work.} Selected studies; not a systematic review.
 \end{table}
 
-\clearpage
-
-% --------------------------------------------------
-% Table S2: System Hyperparameters
 % --------------------------------------------------
 \begin{table}[H]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{3.5pt}
-\renewcommand{\arraystretch}{1.12}
-\caption{System hyperparameter specifications across experimental modules.}
+\caption{Hyperparameters.}
 \label{tab:supp_hyperparams}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Module} & \textbf{Hyperparameter} & \textbf{Value or Specification} \\
+Module & Parameter & Value \\
 \midrule
-\multirow{4}{=}{\textbf{Model Architecture}}
- & Base recommender & \texttt{CoreHybridRecSys} multi-branch neural network \\
- & Trainable parameters & 586,700 weights ($2,346.8$\,KB, float32) \\
- & Feature dimensionality & 43 tabular features across user state, collaborative, and context branches \\
- & Loss formulation & Multi-task: BCE ($1.0$) + Margin Ranking ($0.2$) + Confidence ($0.1$) \\
-\midrule
-\multirow{4}{=}{\textbf{Federated Learning}}
- & Total clients & $N = 20$ client partitions \\
- & Sampled clients/round & $m = 5$ clients ($25\%$ participation rate, $q=0.25$) \\
- & Communication rounds & $T = 15$ global rounds \\
- & Local training & $E = 1$ epoch, Adam optimizer, $\eta = 0.001$, batch size 64 \\
-\midrule
-\multirow{5}{=}{\textbf{Differential Privacy}}
- & Privacy unit & Client partition level \\
- & Adjacency relation & Client replacement adjacency ($\mathcal{D} \sim \mathcal{D}'$) \\
- & Clipping norm & $C = 1.0$ ($L_2$ client update clipping bound) \\
- & Noise multipliers & $\sigma \in \{0.5, 1.0, 2.0\}$ (nominal presets DP-1, DP-2, DP-3) \\
- & Target $\delta$ \& Accountant & $\delta = 10^{-5}$; Subsampled Gaussian RDP ($\epsilon \in \{11.17, 5.12, 2.44\}$, provisional) \\
-\midrule
-\multirow{4}{=}{\textbf{Homomorphic Encryption}}
- & Cryptographic scheme & TenSEAL CKKS (Microsoft SEAL 3.7.2 backend) \\
- & Polynomial degree & $N_{\text{poly}} = 8{,}192$ (SIMD slot capacity: 4,096 complex slots) \\
- & Modulus bit sizes & $[60, 40, 40, 60]$ ($200$ total modulus bits; 128-bit classical security) \\
- & Scale bit width & $2^{40}$ precision scale \\
-\midrule
-\multirow{4}{=}{\textbf{Explainability (XAI)}}
- & Evaluation instances & $M_{\text{eval}} = 30$ instances across holdout test users \\
- & KernelSHAP budget & $K_{\text{bg}} = 20$ background instances, $50$ coalition samples/instance ($1{,}500$ model evals) \\
- & LIME budget & $500$ normal perturbation samples/instance, local ridge surrogate ($15{,}000$ model evals) \\
- & Masking parameter & Top-$3$ features by descending absolute SHAP attribution \\
-\midrule
-\multirow{2}{=}{\textbf{Datasets}}
- & EARS benchmark & $5{,}157$ interaction samples partitioned across $20$ training clients (mean: $257.8$) \\
- & MovieLens-100k & $8{,}255$ filtered interactions partitioned across $20$ clients ($\alpha=0.5$; 50 test users) \\
+Model & Network & \texttt{CoreHybridRecSys}, 586,700 parameters (2.35 MB float32) \\
+ & Loss & BCE (1.0) + pairwise ranking (0.2) + confidence (0.1) \\
+ & Explained features & 43 tabular summary features; sequence inputs held at instance values \\
+Data split & Cutoff & 80th percentile of purchase dates; features and statistics from data $\leq$ cutoff \\
+ & Users per seed & 20 training clients (one user each), 20 MIA non-member users, 50 evaluation users \\
+ & Evaluation candidates & Items first purchased after cutoff (relevant) + 50 never-interacted items \\
+ & Record hold-out & 20\% of each training client's samples, never trained on \\
+ & Training negatives & $\max(0.6\times\text{interacted}, 20)$ sampled non-interacted items per user \\
+Federated learning & Clients, rounds, sampling & $N=20$, $T=15$, $m=5$ uniformly without replacement \\
+ & Local training & 1 epoch, Adam, learning rate $10^{-3}$, weight decay $10^{-4}$, batch 64 \\
+ & Aggregation & Sample-weighted (E1, E3); uniform mean (E2, E4) \\
+ & Centralised (E0) & Same network and optimiser; same total number of processed samples \\
+DP & Unit, adjacency & Client (= user); replace-one \\
+ & Clipping & $C=1$ on the whole update ($L_2$) \\
+ & Noise & E2: $\sigma\in\{1,2,4,8\}$, std $\sigma C/m$ on the mean; E4: $\sigma=4$, std $\sigma C/\sqrt m$ per client \\
+ & Accounting & \texttt{dp\_accounting} 0.6.0 RDP, sampled w/o replacement, orders 1.1--256, $\delta=10^{-5}$ \\
+CKKS & Library, parameters & TenSEAL 0.3.16; ring dimension 8192; moduli $[60,40,40,60]$; scale $2^{40}$; 4096 slots \\
+ & Keys & Key holder holds secret key; server and clients receive public context only \\
+Top-$k$ & Ratios, mask & 50, 20, 10, 5\%; shared mask from previous global update (seeded random in round 1) \\
+Explanations & Instances & 30 evaluation candidates per seed, shared across configurations \\
+ & KernelSHAP & 200 coalitions, 20 background training rows \\
+ & LIME & Matched rows and library default (5,000); continuous features, regression mode \\
+ & Removal curves & SHAP / 20 random / reverse orders; 10 replacement draws; marginal and 10-NN conditional \\
+MIA & Attack & Loss threshold, threshold-free AUC; 2,000 bootstrap and permutation resamples \\
+Inversion & Attack & Cosine gradient matching, Adam lr 0.05, 300 iterations, 20 records per seed \\
 \bottomrule
 \end{tabularx}
-\par\smallskip\raggedright\textit{Source: Authors' own work. For EARS, the full constructed pool contains $14{,}024$ samples across 50 users, of which $5{,}157$ are allocated across the 20 federated training clients.}
+\par\smallskip\raggedright\footnotesize\textit{Source: Authors' own work.}
 \end{table}
 
-\clearpage
+\input{generated/tab_seeds.tex}
 
 % --------------------------------------------------
-% Table S3: Cross-Dataset Validation
-% --------------------------------------------------
-\begin{table}[H]
+\begin{algorithm}[H]
+\caption{Training procedure for E1--E4 (one seed).}
+\label{alg:fl}
+\begin{algorithmic}[1]
+\Require clients $\{1..N\}$, rounds $T$, sample size $m$, clip $C$, noise multiplier $\sigma$, Top-$k$ ratio $r$
+\State Key holder generates CKKS keys; public context (no secret key) sent to server and clients \Comment{E3, E4}
+\For{$t=1..T$}
+  \State Server samples $S_t$, $|S_t|=m$, uniformly without replacement; broadcasts $w_{t-1}$
+  \State If $r<1$: server broadcasts mask $M_t$ (round 1: seeded random; else top-$rP$ of $|\Delta_{t-1}|$) \Comment{E3 Top-$k$}
+  \For{each $k\in S_t$}
+    \State $\Delta_k \gets \textsc{LocalTrain}(w_{t-1}, D_k) - w_{t-1}$
+    \If{E4} $\Delta_k \gets \textsc{Clip}_C(\Delta_k) + \mathcal{N}(0,\sigma^2C^2/m)$ \EndIf
+    \If{E3 or E4} send $\textsc{Enc}(\Delta_k[M_t])$ \Else\ send $\Delta_k$ \EndIf
+  \EndFor
+  \If{E2} $\Delta \gets \frac1m\sum_k \textsc{Clip}_C(\Delta_k) + \mathcal{N}(0,(\sigma C/m)^2)$ \Comment{server, plaintext}
+  \ElsIf{E3 or E4} server computes $\sum_k a_k\,\textsc{Enc}(\cdot)$ with public context; key holder decrypts; scatter to $M_t$
+  \Else\ $\Delta \gets \sum_k a_k \Delta_k$ \EndIf
+  \State $w_t \gets w_{t-1}+\Delta$; if DP, record one subsampled Gaussian step in the accountant
+\EndFor
+\State $a_k = n_k/\sum_{j\in S_t} n_j$ for E1, E3; $a_k = 1/m$ for E2, E4
+\end{algorithmic}
+\end{algorithm}
+
+\input{generated/tab_dp.tex}
+\input{generated/tab_ml_detail.tex}
+\input{generated/tab_xai_budget.tex}
+\input{generated/tab_plausibility.tex}
+
+\begin{figure}[H]
 \centering
-\scriptsize
-\setlength{\tabcolsep}{2.0pt}
-\renewcommand{\arraystretch}{1.14}
-\caption{Cross-dataset validation: comparison between proprietary enterprise e-commerce (EARS) and public entertainment benchmark (MovieLens-100k) across configurations ($\text{mean} \pm \text{standard deviation}$ across seeds $\{42, 43, 44\}$).}
-\label{tab:supp_cross_dataset}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{1.7cm}*{8}{Y}}
-\toprule
-\textbf{Config} & \multicolumn{2}{c}{\textbf{NDCG@10}} & \multicolumn{2}{c}{\textbf{Recall@10}} & \multicolumn{2}{c}{\shortstack{\textbf{Train Latency}\\\textbf{(s)}}} & \multicolumn{2}{c}{\shortstack{\textbf{Top-3 Masking}\\\textbf{Sensitivity} $\boldsymbol{\Delta}$}} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
-& \textbf{EARS} & \textbf{ML-100k} & \textbf{EARS} & \textbf{ML-100k} & \textbf{EARS} & \textbf{ML-100k} & \textbf{EARS} & \textbf{ML-100k} \\
-\midrule
-E0 & $0.526 \pm 0.002$ & $0.913 \pm 0.032$ & $0.384 \pm 0.017$ & $0.370 \pm 0.000$ & $27.3 \pm 1.8$ & $17.6 \pm 0.9$ & $3.76 \pm 0.24$ & $3.10 \pm 0.40$ \\
-E1 & $0.563 \pm 0.030$ & $0.888 \pm 0.035$ & $0.406 \pm 0.011$ & $0.370 \pm 0.000$ & $25.3 \pm 1.7$ & $18.8 \pm 0.3$ & $4.00 \pm 0.68$ & $2.39 \pm 1.13$ \\
-E2\_DP1 & $0.522 \pm 0.106$ & $0.740 \pm 0.033$ & $0.236 \pm 0.160$ & $0.367 \pm 0.005$ & $25.3 \pm 1.2$ & $19.3 \pm 0.3$ & $0.80 \pm 0.37$ & $0.59 \pm 0.50$ \\
-E2\_DP2 & $0.430 \pm 0.082$ & $0.402 \pm 0.314$ & $0.161 \pm 0.075$ & $0.151 \pm 0.190$ & $25.5 \pm 0.5$ & $19.9 \pm 0.7$ & $2.97 \pm 0.77$ & $2.74 \pm 3.70$ \\
-E2\_DP3 & $0.402 \pm 0.140$ & $0.273 \pm 0.115$ & $0.108 \pm 0.130$ & $0.077 \pm 0.067$ & $26.5 \pm 2.0$ & $18.8 \pm 0.5$ & $11.70 \pm 5.66$ & $4.07 \pm 2.65$ \\
-E3 & $0.565 \pm 0.030$ & $0.894 \pm 0.039$ & $0.407 \pm 0.011$ & $0.370 \pm 0.000$ & $49.7 \pm 0.7$ & $44.0 \pm 0.6$ & $3.99 \pm 0.66$ & $2.38 \pm 1.32$ \\
-E4 & $0.434 \pm 0.038$ & $0.375 \pm 0.170$ & $0.214 \pm 0.068$ & $0.146 \pm 0.110$ & $51.2 \pm 2.0$ & $45.5 \pm 0.5$ & $0.58 \pm 0.36$ & $0.96 \pm 0.27$ \\
-\bottomrule
-\end{tabularx}
-\par\smallskip\raggedright\textit{Source: Authors' own work.}
-\end{table}
+\includegraphics[width=0.95\textwidth]{generated/fig_removal_curves.pdf}
+\caption{Removal curves (EARS, conditional replacement): normalised effect $e(k)$ when the first $k$ features are replaced in SHAP order, random order and reverse order, mean over seeds and instances, for E1, E3, E2 ($\sigma=4$) and E4. Source: Authors' own work.}
+\label{fig:removal}
+\end{figure}
+
+\input{generated/tab_cost.tex}
+\input{generated/tab_mcda.tex}
 
 \end{document}

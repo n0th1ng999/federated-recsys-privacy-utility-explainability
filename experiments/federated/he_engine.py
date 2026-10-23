@@ -2,23 +2,36 @@ from __future__ import annotations
 
 import math
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 import torch
 
 try:
     import tenseal as ts
     TENSEAL_AVAILABLE = True
+    TENSEAL_VERSION = getattr(ts, "__version__", "unknown")
 except ImportError:
     ts = None
     TENSEAL_AVAILABLE = False
+    TENSEAL_VERSION = None
 
 
 class HEEngine:
     """
-    Manages CKKS Homomorphic Encryption for secure parameter aggregation in Federated Learning.
-    Measures key generation, encryption, homomorphic operations, aggregation, decryption,
-    and serialized ciphertext communication overhead.
+    CKKS secure aggregation for Federated Learning (TenSEAL).
+
+    Key roles (honest-but-curious model):
+      * Key holder: generates the CKKS key pair and is the only party able to
+        decrypt. It receives only the aggregated ciphertext. In the simulation it
+        is a separate logical role from the aggregation server; the clients share
+        the public context.
+      * Aggregation server: holds `server_context` (public + evaluation keys, NO
+        secret key) and can only add/scale ciphertexts.
+    Confidentiality of individual updates against the server rests on the RLWE
+    hardness assumption (IND-CPA security of CKKS) and on the server not colluding
+    with the key holder. CKKS decryption of the aggregate is approximate.
+
+    All ciphertext traffic is measured by serialising every chunk.
     """
 
     def __init__(
@@ -27,30 +40,41 @@ class HEEngine:
         coeff_mod_bit_sizes: List[int] = [60, 40, 40, 60],
         scale_bits: int = 40,
     ):
+        if not TENSEAL_AVAILABLE:
+            raise RuntimeError(
+                "TenSEAL is not installed. HE experiments must run with real CKKS "
+                "encryption; there is no simulated fallback."
+            )
         self.poly_modulus_degree = poly_modulus_degree
         self.coeff_mod_bit_sizes = list(coeff_mod_bit_sizes)
         self.scale_bits = scale_bits
         self.scale = 2 ** scale_bits
+        self.slot_count = self.poly_modulus_degree // 2
 
-        self.context = None
-        self.server_context = None
-        self.keygen_time_sec = 0.0
+        t0 = time.perf_counter()
+        self.secret_context = ts.context(
+            ts.SCHEME_TYPE.CKKS,
+            poly_modulus_degree=self.poly_modulus_degree,
+            coeff_mod_bit_sizes=self.coeff_mod_bit_sizes,
+        )
+        self.secret_context.global_scale = self.scale
+        self.keygen_time_sec = time.perf_counter() - t0
 
-        if TENSEAL_AVAILABLE:
-            t0 = time.perf_counter()
-            self.context = ts.context(
-                ts.SCHEME_TYPE.CKKS,
-                poly_modulus_degree=self.poly_modulus_degree,
-                coeff_mod_bit_sizes=self.coeff_mod_bit_sizes,
-            )
-            self.context.global_scale = self.scale
-            self.context.generate_galois_keys()
+        # What clients and the aggregation server receive: the public key only. No secret key,
+        # and no Galois or relinearisation keys, which are needed only for rotations and
+        # ciphertext-ciphertext products; FedAvg needs additions and plaintext scalings.
+        public_bytes = self.secret_context.serialize(
+            save_public_key=True, save_secret_key=False, save_galois_keys=False, save_relin_keys=False
+        )
+        self.public_context_bytes = len(public_bytes)
+        self.server_context = ts.context_from(public_bytes)
+        self.client_context = ts.context_from(public_bytes)
 
-            # Server context contains public evaluation keys only (without secret key)
-            self.server_context = ts.context_from(self.context.serialize(save_secret_key=False))
-            self.keygen_time_sec = time.perf_counter() - t0
-
-    def flatten_weights(self, weights: Dict[str, torch.Tensor]) -> Tuple[np.ndarray, List[Tuple[str, Tuple[int, ...], int]]]:
+    # ------------------------------------------------------------------
+    # Flattening helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def flatten_weights(weights: Dict[str, torch.Tensor]) -> Tuple[np.ndarray, List[Tuple[str, Tuple[int, ...], int]]]:
         """Flattens a model state dict / weight delta into a 1D float64 numpy array."""
         chunks = []
         shapes = []
@@ -61,8 +85,8 @@ class HEEngine:
         flat = np.concatenate(chunks) if chunks else np.empty(0, dtype=np.float64)
         return flat, shapes
 
+    @staticmethod
     def unflatten_weights(
-        self,
         flat: np.ndarray,
         shapes: List[Tuple[str, Tuple[int, ...], int]],
         device: torch.device = torch.device("cpu"),
@@ -72,107 +96,57 @@ class HEEngine:
         offset = 0
         for key, shape, length in shapes:
             chunk = flat[offset:offset + length]
-            tensor = torch.from_numpy(chunk.reshape(shape)).float().to(device)
-            weights[key] = tensor
+            weights[key] = torch.from_numpy(chunk.reshape(shape)).float().to(device)
             offset += length
         return weights
 
-    def encrypt_vector(
-        self,
-        flat_vector: np.ndarray,
-        sample_chunk_size: Optional[int] = None,
-    ) -> Tuple[Any, float, int]:
+    # ------------------------------------------------------------------
+    # Client side
+    # ------------------------------------------------------------------
+    def client_encrypt(self, flat_vector: np.ndarray) -> Tuple[List[bytes], float, int]:
         """
-        Encrypts a vector using CKKS by packing into polynomial chunks of size slot_count.
-        Returns (encrypted_payload, encryption_time_sec, ciphertext_size_bytes).
+        Encrypts a vector with the public context, packing `slot_count` values per
+        ciphertext. Returns (serialized_chunks, encryption_time_sec, total_bytes).
         """
-        slot_count = self.poly_modulus_degree // 2
-        chunk_size = sample_chunk_size if sample_chunk_size is not None else slot_count
-
-        if not TENSEAL_AVAILABLE or self.context is None:
-            # High-fidelity simulated ciphertext measurement
-            bits_total = sum(self.coeff_mod_bit_sizes)
-            simulated_size = int(math.ceil(len(flat_vector) / chunk_size) * (2 * self.poly_modulus_degree * bits_total // 8))
-            return (flat_vector.copy(), len(flat_vector)), 0.001, simulated_size
-
         t0 = time.perf_counter()
-        num_chunks = int(math.ceil(len(flat_vector) / chunk_size))
-        chunks = []
+        num_chunks = int(math.ceil(len(flat_vector) / self.slot_count))
+        serialized = []
         for i in range(num_chunks):
-            sub_vec = flat_vector[i * chunk_size : (i + 1) * chunk_size]
-            chunks.append(ts.ckks_vector(self.context, sub_vec))
+            sub_vec = flat_vector[i * self.slot_count:(i + 1) * self.slot_count]
+            serialized.append(ts.ckks_vector(self.client_context, sub_vec).serialize())
         enc_time = time.perf_counter() - t0
+        return serialized, enc_time, int(sum(len(b) for b in serialized))
 
-        sample_serialized = chunks[0].serialize()
-        full_size = int(len(sample_serialized) * len(chunks))
-        return (chunks, len(flat_vector)), enc_time, full_size
-
-    def homomorphic_aggregate(
+    # ------------------------------------------------------------------
+    # Aggregation server (no secret key)
+    # ------------------------------------------------------------------
+    def server_aggregate(
         self,
-        encrypted_updates: List[Any],
-        client_weights: List[float],
-    ) -> Tuple[Any, float]:
+        client_payloads: Sequence[List[bytes]],
+        client_weights: Sequence[float],
+    ) -> Tuple[List[bytes], float, int]:
         """
-        Aggregates encrypted client updates: Enc(Update_avg) = Sum(w_k * Enc(Update_k)).
-        Returns (aggregated_encrypted_payload, computation_time_sec).
+        Computes Enc(sum_k w_k * u_k) chunk by chunk using only the public context.
+        Returns (serialized_aggregate, computation_time_sec, aggregate_bytes).
         """
         t0 = time.perf_counter()
-        if not TENSEAL_AVAILABLE or not encrypted_updates:
-            comp_time = time.perf_counter() - t0
-            return encrypted_updates[0], comp_time
-
-        first_payload = encrypted_updates[0]
-        if isinstance(first_payload, tuple) and isinstance(first_payload[0], list):
-            chunks_k = [u[0] for u in encrypted_updates]
-            orig_len = first_payload[1]
-            num_chunks = len(chunks_k[0])
-
-            agg_chunks = []
-            for i in range(num_chunks):
-                chunk_sum = chunks_k[0][i] * client_weights[0]
-                for k in range(1, len(chunks_k)):
-                    chunk_sum += (chunks_k[k][i] * client_weights[k])
-                agg_chunks.append(chunk_sum)
-            comp_time = time.perf_counter() - t0
-            return (agg_chunks, orig_len), comp_time
-
-        # Fallback if unchunked/simulated
-        if not hasattr(first_payload, "serialize"):
-            comp_time = time.perf_counter() - t0
-            return first_payload, comp_time
-
-        acc = encrypted_updates[0] * client_weights[0]
-        for enc_upd, weight in zip(encrypted_updates[1:], client_weights[1:]):
-            acc += (enc_upd * weight)
+        num_chunks = len(client_payloads[0])
+        if any(len(p) != num_chunks for p in client_payloads):
+            raise ValueError("Clients sent ciphertexts with different chunk layouts.")
+        agg = []
+        for i in range(num_chunks):
+            acc = ts.ckks_vector_from(self.server_context, client_payloads[0][i]) * float(client_weights[0])
+            for k in range(1, len(client_payloads)):
+                acc += ts.ckks_vector_from(self.server_context, client_payloads[k][i]) * float(client_weights[k])
+            agg.append(acc.serialize())
         comp_time = time.perf_counter() - t0
-        return acc, comp_time
+        return agg, comp_time, int(sum(len(b) for b in agg))
 
-    def decrypt_vector(
-        self,
-        encrypted_aggregate: Any,
-    ) -> Tuple[np.ndarray, float]:
-        """
-        Decrypts aggregated ciphertext back into full 1D float64 parameter vector.
-        Returns (decrypted_vector, decryption_time_sec).
-        """
+    # ------------------------------------------------------------------
+    # Key holder
+    # ------------------------------------------------------------------
+    def key_holder_decrypt(self, aggregate: List[bytes], orig_len: int) -> Tuple[np.ndarray, float]:
         t0 = time.perf_counter()
-        if not TENSEAL_AVAILABLE or self.context is None:
-            dec_time = time.perf_counter() - t0
-            if isinstance(encrypted_aggregate, tuple) and isinstance(encrypted_aggregate[0], np.ndarray):
-                return encrypted_aggregate[0], dec_time
-            return encrypted_aggregate, dec_time
-
-        if isinstance(encrypted_aggregate, tuple) and isinstance(encrypted_aggregate[0], list):
-            chunks, orig_len = encrypted_aggregate
-            dec_chunks = [np.array(c.decrypt(), dtype=np.float64) for c in chunks]
-            decrypted = np.concatenate(dec_chunks)[:orig_len]
-            dec_time = time.perf_counter() - t0
-            return decrypted, dec_time
-
-        if not hasattr(encrypted_aggregate, "decrypt"):
-            dec_time = time.perf_counter() - t0
-            return np.asarray(encrypted_aggregate, dtype=np.float64), dec_time
-
-        decrypted = np.array(encrypted_aggregate.decrypt(), dtype=np.float64)
-        dec_time = time.perf_counter() - t0
-        return decrypted, dec_time
+        dec = [np.array(ts.ckks_vector_from(self.secret_context, b).decrypt(), dtype=np.float64) for b in aggregate]
+        out = np.concatenate(dec)[:orig_len]
+        return out, time.perf_counter() - t0

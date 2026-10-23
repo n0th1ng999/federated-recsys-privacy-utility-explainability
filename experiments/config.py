@@ -35,6 +35,15 @@ class FLConfig:
     weight_decay: float = 1e-4
     seed: int = 42
     device: str = "auto"
+    # Top-K sparsification of client updates.
+    #   "none": dense updates
+    #   "shared_mask": all clients keep the SAME k coordinates, chosen by the server
+    #       (round 1: seeded random; round t: largest |global update| of round t-1),
+    #       so packed CKKS vectors are aligned and can be summed homomorphically.
+    #   "per_client": each client keeps its own top-k by magnitude and sends
+    #       (value, int32 index) pairs in plaintext (not compatible with HE).
+    topk_mode: str = "none"
+    topk_ratio: float = 1.0
 
 
 @dataclass
@@ -89,28 +98,28 @@ def get_e1_fl_baseline_config(seed: int = 42) -> ExperimentConfig:
     )
 
 
+# Noise multipliers for the central-DP sweep (E2) and for E4. Epsilon is not fixed here:
+# it is computed by the accountant in federated/dp_engine.py for the realised schedule.
+E2_NOISE_MULTIPLIERS = (1.0, 2.0, 4.0, 8.0)
+E4_NOISE_MULTIPLIER = 4.0
+
+
+def _sigma_tag(sigma: float) -> str:
+    return f"s{sigma:g}".replace(".", "p")
+
+
 def get_e2_fl_dp_config(
-    level: str = "DP-2",
+    sigma: float = 4.0,
     clipping_norm: float = 1.0,
     seed: int = 42,
 ) -> ExperimentConfig:
-    # Noise multiplier presets matching Section 6:
-    # DP-1: Higher epsilon / lower noise / lower privacy
-    # DP-2: Medium epsilon / medium noise
-    # DP-3: Lower epsilon / higher noise / stronger privacy
-    noise_multipliers = {
-        "DP-1": 0.5,
-        "DP-2": 1.0,
-        "DP-3": 2.0,
-    }
-    sigma = noise_multipliers.get(level, 1.0)
     return ExperimentConfig(
-        name=f"E2_FL_{level.replace('-', '')}",
-        description=f"Federated Learning with Differential Privacy ({level})",
+        name=f"E2_FL_DP_{_sigma_tag(sigma)}",
+        description=f"Federated Learning with central client-level DP (sigma={sigma:g})",
         is_federated=True,
         dp=DPConfig(
             enabled=True,
-            privacy_level=level,
+            privacy_level=f"sigma={sigma:g}",
             clipping_norm=clipping_norm,
             noise_multiplier=sigma,
             target_delta=1e-5,
@@ -139,16 +148,16 @@ def get_e3_fl_he_config(seed: int = 42) -> ExperimentConfig:
     )
 
 
-def get_e4_fl_dp_he_config(seed: int = 42) -> ExperimentConfig:
+def get_e4_fl_dp_he_config(seed: int = 42, sigma: float = E4_NOISE_MULTIPLIER) -> ExperimentConfig:
     return ExperimentConfig(
         name="E4_FL_DP_HE",
-        description="Combined Federated Learning with Differential Privacy (DP-2) and Homomorphic Encryption (CKKS)",
+        description=f"Distributed client-level DP (sigma={sigma:g}) under CKKS secure aggregation",
         is_federated=True,
         dp=DPConfig(
             enabled=True,
-            privacy_level="DP-2",
+            privacy_level=f"sigma={sigma:g}",
             clipping_norm=1.0,
-            noise_multiplier=1.0,
+            noise_multiplier=sigma,
             target_delta=1e-5,
         ),
         he=HEConfig(
@@ -163,16 +172,36 @@ def get_e4_fl_dp_he_config(seed: int = 42) -> ExperimentConfig:
     )
 
 
+TOPK_RATIOS = (0.5, 0.2, 0.1, 0.05)
+
+
+def get_topk_configs(seed: int = 42) -> Dict[str, ExperimentConfig]:
+    """Top-K variants: shared-mask under CKKS (E3) and per-client plaintext Top-K (E1)."""
+    configs = {}
+    for r in TOPK_RATIOS:
+        tag = f"topk{int(round(r * 100)):02d}"
+        he_cfg = get_e3_fl_he_config(seed=seed)
+        he_cfg.name, he_cfg.description = f"E3_{tag}", f"CKKS secure aggregation with shared-mask Top-K ({r:.0%} of coordinates)"
+        he_cfg.fl.topk_mode, he_cfg.fl.topk_ratio = "shared_mask", r
+        configs[f"E3_{tag}"] = he_cfg
+        pl_cfg = get_e1_fl_baseline_config(seed=seed)
+        pl_cfg.name, pl_cfg.description = f"E1_{tag}", f"Plaintext FedAvg with per-client Top-K ({r:.0%} of coordinates)"
+        pl_cfg.fl.topk_mode, pl_cfg.fl.topk_ratio = "per_client", r
+        configs[f"E1_{tag}"] = pl_cfg
+    return configs
+
+
 def get_all_experiment_configs(seed: int = 42) -> Dict[str, ExperimentConfig]:
-    return {
+    configs = {
         "E0": get_e0_centralized_config(seed=seed),
         "E1": get_e1_fl_baseline_config(seed=seed),
-        "E2_DP1": get_e2_fl_dp_config(level="DP-1", seed=seed),
-        "E2_DP2": get_e2_fl_dp_config(level="DP-2", seed=seed),
-        "E2_DP3": get_e2_fl_dp_config(level="DP-3", seed=seed),
-        "E3": get_e3_fl_he_config(seed=seed),
-        "E4": get_e4_fl_dp_he_config(seed=seed),
     }
+    for sigma in E2_NOISE_MULTIPLIERS:
+        configs[f"E2_{_sigma_tag(sigma)}"] = get_e2_fl_dp_config(sigma=sigma, seed=seed)
+    configs["E3"] = get_e3_fl_he_config(seed=seed)
+    configs["E4"] = get_e4_fl_dp_he_config(seed=seed)
+    configs.update(get_topk_configs(seed=seed))
+    return configs
 
 
 def get_quick_experiment_configs(seed: int = 42) -> Dict[str, ExperimentConfig]:
@@ -180,18 +209,20 @@ def get_quick_experiment_configs(seed: int = 42) -> Dict[str, ExperimentConfig]:
     configs = {
         "E0": get_e0_centralized_config(seed=seed),
         "E1": get_e1_fl_baseline_config(seed=seed),
-        "E2_DP2": get_e2_fl_dp_config(level="DP-2", seed=seed),
+        "E2_s4": get_e2_fl_dp_config(sigma=4.0, seed=seed),
         "E3": get_e3_fl_he_config(seed=seed),
         "E4": get_e4_fl_dp_he_config(seed=seed),
     }
+    topk = get_topk_configs(seed=seed)
+    configs.update({k: topk[k] for k in ("E3_topk10", "E1_topk10")})
     for cfg in configs.values():
-        cfg.fl.num_clients = 3
+        cfg.fl.num_clients = 4
         cfg.fl.clients_per_round = 2
         cfg.fl.num_rounds = 2
         cfg.fl.local_epochs = 1
         cfg.eval.eval_users = 5
         cfg.eval.candidates_per_user = 10
-        cfg.eval.shap_samples = 5
-        cfg.eval.lime_samples = 5
+        cfg.eval.shap_samples = 3
+        cfg.eval.lime_samples = 3
         cfg.eval.stability_runs = 2
     return configs

@@ -16,6 +16,11 @@ GENRES = [
 ]
 
 
+# Bump when the conversion changes so cached CSVs are rebuilt.
+# v2: view sessions per (user, day) with true dates (enables temporal holdout).
+ADAPTER_VERSION = "2"
+
+
 def ensure_movielens_data(target_dir: str = os.path.join("data", "movielens")) -> str:
     """
     Downloads MovieLens-100k (if not already cached) and transforms it into the
@@ -27,8 +32,18 @@ def ensure_movielens_data(target_dir: str = os.path.join("data", "movielens")) -
     orders_path = os.path.join(target_dir, "orders.csv")
     order_items_path = os.path.join(target_dir, "order_items.csv")
     views_path = os.path.join(target_dir, "viewed_products.csv")
+    version_path = os.path.join(target_dir, ".adapter_version")
 
-    if all(os.path.exists(p) for p in [clientes_path, produtos_path, orders_path, order_items_path, views_path]):
+    def _cached_version():
+        if not os.path.exists(version_path):
+            return None
+        with open(version_path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+
+    if (
+        all(os.path.exists(p) for p in [clientes_path, produtos_path, orders_path, order_items_path, views_path])
+        and _cached_version() == ADAPTER_VERSION
+    ):
         print(f"MovieLens-100k data already prepared at: {target_dir}")
         return target_dir
 
@@ -138,17 +153,18 @@ def ensure_movielens_data(target_dir: str = os.path.join("data", "movielens")) -
     order_items_df.to_csv(order_items_path, index=False)
 
     # 4. Generate viewed_products.csv
-    # Group interaction history by user as views
+    # Every rating (any value) is an exposure. One session per (user, day), dated by the
+    # rating timestamp, so that a temporal cutoff can exclude future interactions.
     views_list = []
     session_id = 1
-    for uid, group in ratings_df.groupby("user_id"):
-        pids = ",".join(str(pid) for pid in group["item_id"].head(25))
-        view_date = pd.to_datetime(group["timestamp"].iloc[0], unit="s").strftime("%Y-%m-%d")
+    ratings_df = ratings_df.sort_values(["user_id", "timestamp"])
+    ratings_df["day"] = pd.to_datetime(ratings_df["timestamp"], unit="s").dt.strftime("%Y-%m-%d")
+    for (uid, day), group in ratings_df.groupby(["user_id", "day"], sort=True):
         views_list.append({
             "SessionID": session_id,
             "ClientID": uid,
-            "ViewDate": view_date,
-            "ProductIDs": pids,
+            "ViewDate": day,
+            "ProductIDs": ",".join(str(pid) for pid in group["item_id"]),
             "SearchQuery": "movie search",
             "AppliedFilters": "rating",
             "SortBy": "popular",
@@ -165,6 +181,9 @@ def ensure_movielens_data(target_dir: str = os.path.join("data", "movielens")) -
     pd.DataFrame(columns=["ClientID", "ProductID", "EventDate"]).to_csv(os.path.join(target_dir, "cart_events.csv"), index=False)
     pd.DataFrame(columns=["ProductID1", "ProductID2", "RelationType"]).to_csv(os.path.join(target_dir, "product_relations.csv"), index=False)
     pd.DataFrame(columns=["ProductID", "Price", "Date"]).to_csv(os.path.join(target_dir, "price_history.csv"), index=False)
+
+    with open(version_path, "w", encoding="utf-8") as f:
+        f.write(ADAPTER_VERSION)
 
     print(f"Successfully adapted MovieLens-100k into {target_dir} ({len(clientes_df)} clients, {len(produtos_df)} items, {len(orders_df)} orders).")
     return target_dir
