@@ -1,0 +1,210 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{newtxtext,newtxmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{url}
+\usepackage{xurl}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{xr}
+\externaldocument[S-]{supplementary}
+
+% Emerald Harvard author-year citations
+\usepackage{harvard}
+\citationstyle{dcu}
+\citationmode{abbr}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\normalsize\itshape}{\thesubsection}{1em}{}
+\renewcommand{\thetable}{\Roman{table}}
+\setlength{\emergencystretch}{2em}
+
+% All reported numbers come from experiments/reporting/export_latex.py
+\input{generated/results_macros.tex}
+
+\title{\textbf{Privacy, Utility and Explainability Trade-offs in\\ Privacy-Preserving Federated Recommender Systems}}
+\author{Anonymous submission}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent\textbf{Purpose} -- To measure, in one controlled design, how central differential privacy (DP), CKKS homomorphic encryption (HE) and their combination affect ranking utility, communication and computation cost, measured privacy leakage and post-hoc explanations in a federated recommender.
+
+\noindent\textbf{Design/methodology/approach} -- A multi-branch recommender is trained centrally, with FedAvg, with client-level central DP at four noise levels, with CKKS secure aggregation, and with distributed DP under CKKS, on a synthetic retail dataset and MovieLens-100k, using a temporal hold-out and ten seeds. Privacy is accounted with a subsampling-without-replacement R\'enyi accountant and tested with membership-inference and gradient-inversion attacks. Explanations are tested for fidelity to each model.
+
+\noindent\textbf{Findings} -- CKKS aggregation was equivalent to FedAvg in ranking utility but enlarged client upload about \R{oh.ratio}-fold; aligned Top-$k$ cut that by \R{tk.10.red}\% at 10\% of coordinates without detectable utility loss. With 20 clients, client-level DP at every tested noise level ($\varepsilon \leq$ \R{ears.E2_s1.eps} to \R{ears.E2_s8.eps}) left no detectable client signal: private models were statistically indistinguishable from an untrained network plus the same noise. Single plaintext updates were invertible; aggregates and noisy updates were not. A loss-based membership attack found no leakage. SHAP stayed faithful to each model. All learned models ranked below popularity.
+
+\noindent\textbf{Originality/value} -- The study separates central from distributed DP guarantees, aligns attacks with the privacy unit, controls DP results against noise-only models and reports costs by traffic direction.
+
+\noindent\textbf{Keywords} Federated learning, Differential privacy, Homomorphic encryption, Explainable AI, Recommender systems
+
+\noindent\textbf{Paper type} Research paper
+\end{abstract}
+
+% ==================================================
+\section{Introduction}
+% ==================================================
+
+Recommender systems learn from behavioural records that organisations are often unwilling or unable to centralise \cite{yang2019federated}. Federated learning (FL) keeps those records on the data holders and exchanges model updates instead \cite{mcmahan2017communication,kairouz2021advances}. Updates are not anonymous, however: an aggregation server can invert individual gradients \cite{zhu2019deep,geiping2020inverting}, and a released model can reveal whether a person's data were used \cite{yeom2018privacy,carlini2022membership}. Two families of defences address these threats. Differential privacy (DP) bounds what any released output reveals about one privacy unit \cite{dwork2014algorithmic,mcmahan2018learning}. Homomorphic encryption (HE), here the CKKS scheme \cite{cheon2017homomorphic}, lets the server aggregate updates it cannot read \cite{benaissa2021tenseal}. Recommender outputs must also be explainable to users and auditors, and post-hoc attribution methods such as SHAP and LIME \cite{lundberg2017unified,ribeiro2016why} are commonly used for that purpose \cite{ge2022explainable}.
+
+These mechanisms are usually studied one at a time. This paper evaluates them in one design built on the EARS recommender \cite{gaspar2025ears}, and is organised around four questions. RQ1: how do central DP, CKKS aggregation and their combination change ranking utility relative to FedAvg and to centralised training? RQ2: what communication and computation do they add, and how much of the CKKS cost can sparsification remove? RQ3: what leakage do membership-inference and gradient-inversion attacks measure under each configuration, given the declared privacy unit? RQ4: do post-hoc explanations remain faithful to each private model, and how far do they move away from those of a centralised model?
+
+The contributions are: (i) a privacy accounting that matches the implemented mechanism (fixed-size client sampling without replacement, replace-one adjacency, uniform aggregation), with central DP (E2) and distributed DP under CKKS (E4) analysed separately; (ii) a leakage-free temporal evaluation with random and popularity references; (iii) attacks defined by what each party observes and by privacy unit; (iv) an explanation protocol that separates fidelity to the private model from divergence from the centralised one, with measured explainer budgets; (v) a Top-$k$ protocol whose coordinates are aligned across clients so that encrypted sums remain exact; and (vi) a cost model by traffic direction and an MCDA with sensitivity analysis.
+
+% ==================================================
+\section{Related work}
+% ==================================================
+
+Federated recommendation has adapted matrix factorisation, neural collaborative filtering and hybrid models to decentralised data \cite{tan2020federated,zhang2023comprehensive,yang2024federated,gaspar2026literature}. Client-level DP for FL clips each client's update and adds Gaussian noise to their average \cite{mcmahan2018learning}; privacy loss is composed over rounds with R\'enyi DP \cite{mironov2017renyi}, and subsampling amplifies privacy in a way that depends on the sampling scheme and the neighbouring relation \cite{balle2018privacy,wang2019subsampled}. When the server should not see individual updates, noise can instead be split across clients and combined with secure aggregation, so that only the noisy sum is revealed \cite{kairouz2021distributed,bonawitz2017practical}. DP has been shown to reduce recommendation accuracy \cite{hua2020differential,shin2023differentially}. CKKS supports the additions and plaintext multiplications that FedAvg needs; its security rests on the ring learning-with-errors problem and on parameter choices \cite{albrecht2018homomorphic}, and approximate decryption creates additional risks when decrypted results are shared \cite{li2021security}.
+
+Gradient inversion recovers inputs by matching a dummy input's gradient to an observed one \cite{zhu2019deep}; cosine-distance matching makes the attack effective on realistic networks \cite{geiping2020inverting}. Membership inference compares the model's loss on candidate records \cite{yeom2018privacy} and should be judged at low false-positive rates \cite{carlini2022membership}. For explanations, privacy noise and adversarial manipulation can change attributions \cite{harder2020differentially,slack2020fooling,dombrowski2019explanations}; removal-based fidelity tests are sensitive to how removed features are replaced, because independent replacement creates out-of-distribution inputs \cite{hooker2019benchmark,aas2021explaining}. Sparsifying updates to their largest coordinates reduces communication \cite{lin2018deep}, but per-client coordinate sets are incompatible with packed homomorphic addition. Table~\ref{S-tab:supp_related_work} positions this study against selected work; it is not a systematic review.
+
+% ==================================================
+\section{Method}
+% ==================================================
+
+\subsection{Model, data and temporal evaluation}
+
+The recommender is the EARS \texttt{CoreHybridRecSys} network \cite{gaspar2025ears} with 586,700 parameters. It scores a user--item pair from three branches (user-state summaries, collaborative signals and pair context) and is trained with a binary purchase loss, a pairwise ranking loss and a confidence loss weighted 1, 0.2 and 0.1. Two datasets are used. EARS is a synthetic retail dataset with 9,000 customers and 2,400 products, containing orders, ratings, product views and price history; it contains no real personal data. MovieLens-100k \cite{harper2015movielens} has 943 users and 1,682 films; ratings $\geq 4$ are treated as purchases and every rating as an exposure, dated by its timestamp.
+
+Each seed defines a split (Table~\ref{S-tab:seeds}). A global cutoff $\tau$ is set at the 80th percentile of purchase dates (EARS: \R{ears.cutoff}; MovieLens: \R{movielens.cutoff}). Only interactions dated $\leq \tau$ enter preprocessing, catalogue statistics, user features and training samples, and the reference time for recency features is fixed at $\tau$. Fifty evaluation users are drawn at random from users with at least three purchased items before $\tau$ and at least one new item purchased after it. Twenty training users and twenty further users are drawn from the remaining users with history before $\tau$; the latter never train and serve only as non-members for membership inference. The three groups are disjoint. Each training user is one FL client, so in this simulation a client holds the data of one person. For each evaluation user, the candidates are the items first purchased after $\tau$ (relevant) and 50 items the user never interacted with (non-relevant), all featurised from data up to $\tau$; there were \R{ears.pos.min}--\R{ears.pos.max} relevant candidates per seed on EARS and \R{movielens.pos.min}--\R{movielens.pos.max} on MovieLens. Training samples follow the EARS pipeline (interacted items with rating-based or profile-based targets plus sampled negatives); 20\% of each client's samples are withheld from training and used only as record-level non-members. We report nDCG@10 and Recall@10 with binary relevance, together with a random ranking and a ranking by pre-cutoff popularity on the same candidates. Two controls help interpret the private models: the untrained network at the initialisation shared by all federated runs, and that network plus exactly the noise E2 adds over all rounds but without any client update (five noise draws per seed). Ranking against sampled negatives overstates absolute performance \cite{krichene2020sampled}; comparisons between configurations on identical candidates are unaffected.
+
+\subsection{Configurations and aggregation}
+
+All federated runs use $N=20$ clients, $T=15$ rounds, $m=5$ clients per round sampled uniformly without replacement, one local epoch of Adam (learning rate $10^{-3}$, batch 64). E0 trains the same network centrally on the pooled training samples with the same total number of processed samples. E1 is FedAvg with weights proportional to client sample counts. E2 is central client-level DP \cite{mcmahan2018learning}: the server receives each update $\Delta_k$, clips it to $\bar\Delta_k=\Delta_k\min(1,C/\lVert\Delta_k\rVert_2)$ with $C=1$, takes the uniform mean and adds noise,
+\begin{equation}
+\tilde\Delta = \frac{1}{m}\sum_{k\in S_t}\bar\Delta_k + \mathcal{N}\!\left(0,\Big(\frac{\sigma C}{m}\Big)^2 I\right),\qquad \sigma\in\{1,2,4,8\}.
+\label{eq:central}
+\end{equation}
+E3 is FedAvg under CKKS secure aggregation with sample-count weights. E4 is distributed DP under CKKS with $\sigma=4$: each client clips its update and adds $\mathcal{N}(0,\sigma^2C^2/m\cdot I)$ before encrypting, so the decrypted uniform mean carries exactly the noise of Eq.~(\ref{eq:central}). DP configurations use the uniform mean because sample-count weights would make one client's influence depend on its size and would reveal sizes to the server; E1 and E3 keep sample-count weights, which the E3 server also learns. Algorithm~\ref{S-alg:fl} gives the full procedure.
+
+\subsection{Privacy guarantees and their scope}
+\label{sec:guarantees}
+
+\textit{Unit and adjacency.} The privacy unit is a client; because each client is one user here, client-level and user-level DP coincide. Two datasets are neighbours if one client's data are replaced (replace-one adjacency), the relation under which fixed-size sampling without replacement is analysed \cite{wang2019subsampled}. Replacing one clipped update changes the uniform mean by at most $2C/m$, so the noise multiplier relative to the sensitivity is $\sigma/2$.
+
+\textit{Accounting.} We compose $T=15$ subsampled Gaussian mechanisms (sample size 5 from 20, without replacement) with the R\'enyi accountant of the \texttt{dp\_accounting} library over orders 1.1--256, and convert to $(\varepsilon,\delta)$ with $\delta=10^{-5}$. This yields upper bounds of $\varepsilon=$ \R{ears.E2_s1.eps}, \R{ears.E2_s2.eps}, \R{ears.E2_s4.eps} and \R{ears.E2_s8.eps} for $\sigma=1,2,4,8$. These are bounds from a conversion that is not tight, not exact values. We avoid small-$q$ approximations of the subsampled Gaussian, which understate $\varepsilon$ at $q=0.25$.
+
+\textit{What is protected from whom.} Table~\ref{tab:guarantees} separates the two DP configurations. In E2 the guarantee covers the sequence of released global models against anyone who observes them, including other clients; the server sees every update before noise is added and must be trusted. In E4 the server sees only ciphertexts. The decrypted aggregate carries the same noise as in E2, so the same $\varepsilon$ bounds the released models, but only if three conditions hold: all sampled clients add their share of the noise, the server does not collude with the key holder, and the key holder learns only the aggregate. If an individual E4 update were exposed, its own noise ($\sigma C/\sqrt m$) would give only $\varepsilon \approx$ \R{E4.epslocal} for that client. E4 is therefore not local DP.
+
+\textit{Scope of CKKS.} We use TenSEAL CKKS with ring dimension 8192, coefficient moduli of 60, 40, 40 and 60 bits, and scale $2^{40}$, which meets the 128-bit classical security level of the Homomorphic Encryption Security Standard \cite{albrecht2018homomorphic}. A key holder generates the keys; clients and the server receive a public context without the secret key, and the server aggregates ciphertexts with that context only. Confidentiality of individual updates against the server rests on the hardness of ring learning with errors and on an honest-but-curious, non-colluding server and key holder. It gives no protection against what the decrypted aggregate or the released model reveal. It does not cover key compromise, malicious clients or servers, client dropouts in E4, or passive key-recovery attacks that use published CKKS decryptions \cite{li2021security}; the implementation does not add the noise flooding that such deployments require. In the simulation, all roles run in one process.
+
+\subsection{Attacks}
+
+\textit{Membership inference.} The adversary has black-box access to the released final model, knows the training loss and holds candidate records with labels; the score is the negative per-record loss \cite{yeom2018privacy}, with no shadow models and no tuned threshold. Two units are tested. Client participation, the DP unit, compares the 20 training clients that took part in at least one round with 20 users who never trained, processed identically; a user's score is their mean record score. Record membership compares the training records of participating clients with their withheld 20\%. For each seed we report ROC AUC with a 2,000-sample bootstrap interval, a 2,000-permutation test of AUC $=0.5$, and true-positive rates at fixed false-positive rates \cite{carlini2022membership}. An AUC below 0.5 means members have higher loss than non-members; it signals a difference between the groups, not protection, since an adversary could reverse the score.
+
+\textit{Gradient inversion.} The target is the 43 tabular features of one training record of the actual recommender. The attacker knows the record's label and its sequence inputs, which makes the result an upper bound on leakage. The observed update is the clipped purchase-loss gradient of that record ($C=1$). We attack what each party observes: an individual plaintext update (E1 and E2 servers; in E2 updates reach the server before noise), the mean of five updates without noise (E3 key holder, or anyone differencing consecutive E1/E3 models), the mean with noise $\sigma C/m$ (E2 released models, E4 key holder), and an individual update with noise $\sigma C/\sqrt m$ (an E4 update if encryption or key separation failed). The CKKS server observes only ciphertexts, so the attack does not apply to it. The attack minimises the cosine distance between gradients \cite{geiping2020inverting} with Adam (learning rate 0.05, 300 iterations) from the mean of 300 training rows. Reconstruction quality is measured on standardised features, where the prior guess (the mean) has cosine 0, as cosine, success rate (cosine $\geq 0.5$) and MSE relative to the prior guess; 20 records per seed.
+
+\subsection{Explanation protocol}
+
+Explanations attribute each model's ranking score to the 43 tabular features; the sequence inputs are held at the explained instance's values, so the explained function equals the model on that instance. For each seed, the same 30 evaluation candidates are explained under every configuration. KernelSHAP uses 20 training rows as background and 200 coalitions per instance. LIME is run with the number of perturbations matched to the rows KernelSHAP actually processed and with the library default of 5,000. A counter around the prediction function records calls and rows, so budgets are reported as work performed by the model (Table~\ref{S-tab:xai_budget}).
+
+Fidelity is assessed on the model being explained. Features are removed in SHAP order, in 20 random orders and in reverse order, and the effect $e(k)=|f(x)-\mathbb{E}f(x_{\setminus k})|$ is normalised by the standard deviation of $f$ over 200 training rows and averaged over $k$. Removed features are replaced either independently from their marginals or jointly from one of the ten nearest training rows on the retained features, an approximation of conditional sampling \cite{aas2021explaining}. Because marginal replacement can produce implausible inputs \cite{hooker2019benchmark}, we report the distance of replaced inputs to the nearest training row against that of genuine held-out rows. Agreement with the centralised model (Spearman correlation with E0's SHAP vector on the same instance) is reported separately as divergence, not fidelity. Stability is the Spearman correlation between repeated SHAP runs.
+
+\subsection{Top-\texorpdfstring{$k$}{k} sparsification under CKKS}
+
+Packed CKKS addition is correct only if slot $j$ holds the same parameter for every client. If each client kept its own largest coordinates, slots would hold different parameters and an encrypted sum would mix them. We therefore use a shared mask chosen by the server: in round 1, $k$ coordinates drawn with a seed; from round 2, the $k$ largest-magnitude coordinates of the previous decrypted global update. Every sampled client packs exactly these coordinates in index order and encrypts them; the decrypted aggregate is scattered back and the other coordinates are not updated in that round. The mask is broadcast as a bitmap or as int32 indices, whichever is smaller. As a plaintext reference, each client in a FedAvg run sends its own top-$k$ coordinates as (value, index) pairs. Neither scheme uses error feedback. Ratios of 50\%, 20\%, 10\% and 5\% are tested.
+
+\subsection{Statistics, costs and decision analysis}
+
+All configurations within a seed share the split, candidates, initialisation and client sampling, so comparisons are paired across ten seeds (42--51; Table~\ref{S-tab:seeds}). We report the mean paired difference in nDCG@10 with a 95\% $t$-interval, a paired $t$-test and a Wilcoxon signed-rank test. Equivalence of E3 and E1 is tested with two one-sided tests \cite{schuirmann1987comparison} against a margin of $\pm0.01$ fixed before the experiments were run. The number of seeds was set by compute budget, not by a power calculation; we report prospective power for assumed standard deviations of the paired difference and do not report post-hoc power \cite{hoenig2001abuse}. Timings and volumes come from a separate sequential run (one process, one thread).
+
+The cost model keeps directions apart: client uploads are inbound to the operator and are not billed by major cloud providers; billable egress comprises model broadcasts, Top-$k$ masks and public CKKS contexts; server compute covers aggregation and decryption (and training for E0); key management and raw-data storage are added where they apply; client compute is reported separately. Measured 20-client volumes are scaled to 100 clients and 30 jobs per month. The MCDA scores six architectures on seven criteria: four derived from measurements by stated rules and three judgement-based with written justifications (Tables~\ref{S-tab:mcda}--\ref{S-tab:mcda_just}). Weights are given for three personas, and sensitivity is tested with one-at-a-time $\pm20\%$ changes and 10,000 Dirichlet weight draws (Table~\ref{S-tab:mcda_sens}).
+
+% ==================================================
+\section{Results}
+% ==================================================
+
+\input{generated/tab_guarantees.tex}
+
+\subsection{Ranking utility (RQ1)}
+
+Table~\ref{tab:utility} reports utility. Training helped relative to the untrained network (EARS: E1 $-$ untrained $=$ \R{ears.E1untr.d}, 95\% CI \R{ears.E1untr.dlo} to \R{ears.E1untr.dhi}), but every learned model ranked below pre-cutoff popularity: E1 $-$ popularity $=$ \R{ears.E1pop.d} nDCG@10 on EARS (CI \R{ears.E1pop.dlo} to \R{ears.E1pop.dhi}) and \R{movielens.E1pop.d} on MovieLens. The comparisons below are therefore statements about privacy mechanisms applied to a weak model, not evidence of competitive recommendation quality \cite{ferraridacrema2019really}. Centralised training and FedAvg did not differ reliably (EARS \R{ears.E0.d}, CI \R{ears.E0.dlo} to \R{ears.E0.dhi}; MovieLens \R{movielens.E0.d}).
+
+CKKS aggregation did not change utility. The paired E3$-$E1 difference was \R{ears.E3.d} on EARS (90\% CI \R{ears.E3.ci90lo} to \R{ears.E3.ci90hi}; TOST $p$ \R{ears.E3.ptost}) and \R{movielens.E3.d} on MovieLens (90\% CI \R{movielens.E3.ci90lo} to \R{movielens.E3.ci90hi}; TOST $p$ \R{movielens.E3.ptost}), both well inside the $\pm0.01$ margin. The only source of difference is CKKS approximation error; fresh encryption randomness makes E3 runs non-bit-identical. For a true difference of 0.01, ten paired seeds give prospective power of \R{power.0.005}, \R{power.0.01} and \R{power.0.02} if the SD of paired differences is 0.005, 0.01 and 0.02.
+
+Central DP did not produce a usable model. No DP configuration differed significantly from E1 (e.g.\ $\sigma=4$, $\varepsilon\leq$ \R{ears.E2_s4.eps}: \R{ears.E2_s4.d}, CI \R{ears.E2_s4.dlo} to \R{ears.E2_s4.dhi}), but between-seed SD rose from \R{ears.E1.ndcgsd} to \R{ears.E2_s4.ndcgsd}, and individual seeds ranged from far below to far above E1. The noise-only control explains this. Adding exactly E2's noise to the untrained network, with no client update at all, gave nDCG@10 of \R{ears.noise.s4.ndcg} at $\sigma=4$, and E2 did not differ from it (\R{ears.noise.s4.d}, CI \R{ears.noise.s4.dlo} to \R{ears.noise.s4.dhi}; MovieLens \R{movielens.noise.s4.d}). E4 behaved likewise (\R{ears.noise.e4.d} against the same control). These intervals are wide, so they show the absence of a detectable client signal rather than equivalence, but together with the scale argument below they indicate that the privatised models learned little or nothing from the clients. Their ranking quality is that of a randomly perturbed network, and on these candidates such networks score above the trained one, which says more about the candidate features than about privacy. The cause is scale. Per round, the noise added to the mean has norm $\sigma C\sqrt{d}/m$, about \R{ears.noise.s1.norm} at $\sigma=1$ and \R{ears.noise.s4.norm} at $\sigma=4$ for $d=$ \R{nparams} parameters, against at most $C=1$ for the signal. With five clients per round, no noise level with a meaningful guarantee leaves learnable signal; client-level DP-FedAvg is usually run with thousands of clients per round \cite{mcmahan2018learning}.
+
+\input{generated/tab_utility.tex}
+
+\subsection{Communication and computation (RQ2)}
+
+Table~\ref{tab:overhead} reports measured costs. A plaintext update is 2.35~MB; its CKKS encryption, serialised in full, is about \R{oh.ratio} times larger, so a 15-round job uploads \R{oh.E3.up}~MB under E3 against \R{oh.E1.up}~MB under E1. Server aggregation rose from \R{oh.E1.agg}~s to \R{oh.E3.agg}~s per job. Model downloads are identical across configurations; CKKS adds one public context per client (\R{oh.E3.ctx}~MB in total). DP added negligible computation.
+
+\input{generated/tab_overhead.tex}
+
+Shared-mask Top-$k$ reduced CKKS upload in proportion to the kept fraction (Table~\ref{tab:topk}): at 10\%, upload fell to \R{tk.10.up}~MB (\R{tk.10.red}\% less), at the price of a mask broadcast of \R{tk.10.mask}~MB, and aggregation time fell to \R{tk.10.agg}~s. Relative to dense CKKS, nDCG@10 changed by \R{tk.10.he.d} (CI \R{tk.10.he.dlo} to \R{tk.10.he.dhi}) at 10\% and by \R{tk.05.he.d} (CI \R{tk.05.he.dlo} to \R{tk.05.he.dhi}) at 5\%. Per-client plaintext Top-$k$ must also send indices, so at 10\% it uploaded \R{tk.10.plainup}~MB against \R{oh.E1.up}~MB dense. Sparsification is sometimes credited with a regularising effect on utility; with ten seeds and a held-out evaluation we detected no such gain and treat the effect as a hypothesis that this design does not test.
+
+\input{generated/tab_topk.tex}
+
+\subsection{Measured leakage (RQ3)}
+
+Membership inference detected no leakage under any configuration (Table~\ref{tab:mia}). At the client level, mean AUC was \R{mia.E1.cauc} for E1, \R{mia.E3.cauc} for E3 and \R{mia.E4.cauc} for E4, and the permutation test rejected chance in at most \R{mia.E4.csig} seeds per configuration, close to what a 5\% test produces by chance. At the record level, AUCs were within 0.01 of 0.5 everywhere (E1: \R{mia.E1.rauc}, over about 4,000 members and 1,000 non-members per seed). Three caveats limit what this shows. The loss attack without shadow models is weak and gives a lower bound on leakage; with 20 members and 20 non-members, the client-level test has little power; and the E1 model generalises poorly, which leaves little to memorise. The absence of a detected signal is therefore not evidence of privacy; the formal bound is what DP adds. CKKS does not change the released model, so E3 is exactly as exposed as E1. AUCs below 0.5 can arise when members are compared with records of different users; drawing record-level non-members from the same users removes this distribution difference.
+
+\input{generated/tab_mia.tex}
+
+Gradient inversion (Table~\ref{tab:dlg}) recovered single plaintext updates well (mean standardised cosine \R{dlg.individual_plain.cos}, success rate \R{dlg.individual_plain.succ}). This applies to the E1 server and, because noise is added after aggregation, to the E2 server: central DP does not protect individual updates from the party that adds the noise. Averaging five updates largely defeated it (cosine \R{dlg.aggregate_plain.cos}, success rate \R{dlg.aggregate_plain.succ}), and with DP noise the attack failed at every $\sigma$, including $\sigma=1$ (cosine \R{dlg.aggregate_centralnoise_s1.cos} for noisy aggregates and \R{dlg.individual_distnoise_s1.cos} for noisy individual updates). With noise, the reconstruction ended farther from the record than the prior guess (MSE ratio \R{dlg.aggregate_centralnoise_s4.mse} at $\sigma=4$), because the noise norm exceeds the signal by two orders of magnitude. The protection that E3 and E4 offer against the server is cryptographic, not measured here.
+
+\input{generated/tab_dlg.tex}
+
+\subsection{Explanations (RQ4)}
+
+Table~\ref{tab:xai} reports explanation fidelity and divergence. For every configuration, removing features in SHAP order changed the score more than random order, and reverse order changed it least. With conditional replacement the SHAP-minus-random gap was \R{xai.E1.gap_cond} for E1, \R{xai.E3.gap_cond} for E3 and \R{xai.E2_s4.gap_cond} for E2 at $\sigma=4$. SHAP thus remained informative about each model's own behaviour, though less consistently under DP, where the gap varied more across seeds. What changed under DP was agreement with the centralised model: Spearman correlation with E0's attributions was \R{xai.E1.agree_rho} for E1 and E3 alike, but \R{xai.E2_s4.agree_rho} for E2 at $\sigma=4$, as expected for noise-dominated networks that compute a different function. Low agreement there reflects a different model, not unfaithful explanations. On plausibility (Table~\ref{S-tab:plausibility}), the explained candidates already lay farther from training rows than genuine held-out rows did (median distance \R{xai.E1.nn_inst} versus \R{xai.E1.nn_real}). Replacing ten features independently from their marginals moved them further away (median change \R{xai.E1.nn_marginal_k10_inc}), whereas conditional replacement did not (\R{xai.E1.nn_conditional_k10_inc}). Marginal removal curves therefore partly probe the model off the data distribution; the conditional results, which lead to the same conclusions, are the ones we rely on. At the same number of processed rows (\R{xai.E1.shap_rows} per instance), KernelSHAP took \R{xai.E1.shap_s}~s and LIME \R{xai.E1.lime_m_s}~s per instance; latency comparisons between explainers are meaningful only at matched budgets.
+
+\input{generated/tab_xai.tex}
+
+\subsection{Costs and decision analysis}
+
+Under the cost model (Table~\ref{S-tab:cost}), federated operator costs were dominated by billable egress (model broadcasts, \R{cost.E1.egress} USD per month), which is identical for E1--E4. CKKS raised client upload, which the operator does not pay for; its operator-side increment came mainly from key management (\$1/month) and, to a lesser extent, server compute (\R{cost.E3.compute} USD). Monthly operator cost was \R{cost.E1.total} USD for E1, \R{cost.E3.total} for E3 and \R{cost.E3_topk10.total} for E3 with Top-10\%. Centralised training was not free but was the cheapest for the operator (\R{cost.E0.total} USD, almost entirely training compute), because raw data are uploaded inbound and no models are broadcast; the risk and compliance burden of holding raw data is not priced by the model. In the MCDA (Tables~\ref{S-tab:mcda}--\ref{S-tab:mcda_sens}), the first-ranked architecture was \R{mcda.reg.first} for the regulated persona, \R{mcda.ret.first} for retail and \R{mcda.b2b.first} for the B2B consortium, ranking first in \R{mcda.reg.pfirst}, \R{mcda.ret.pfirst} and \R{mcda.b2b.pfirst} of weight draws respectively.
+
+% ==================================================
+\section{Discussion}
+% ==================================================
+
+\textit{What the mechanisms buy.} CKKS removed the aggregation server's view of individual updates at no utility cost but at a large upload cost, which aligned Top-$k$ reduces. It did nothing for the released model. DP is the only mechanism with a formal bound on what the released models reveal, but in this federation it did not coexist with learning: at five clients per round, the noise needed for any meaningful $\varepsilon$ is two to three orders of magnitude larger than the clipped signal, and the trained models were indistinguishable from noise. This is a property of the scale of the federation rather than of the recommender: the signal-to-noise ratio of DP-FedAvg grows with the number of clients per round \cite{mcmahan2018learning}, so federations with a few dozen participants, as simulated here, should not expect client-level DP to be usable without many more participants per round or far fewer trainable parameters; consortia whose members each hold many users can instead apply user- or record-level DP within each member. Central DP also leaves individual updates in plaintext at the server, which our attack shows can be inverted; distributed DP under CKKS removes that exposure provided secure aggregation holds, and without it an individual E4 update carries little formal protection (Section~\ref{sec:guarantees}). Practitioners therefore have to decide which party they distrust before choosing a mechanism: the server (CKKS with key separation), observers of the model (DP, given enough clients), or both (E4).
+
+\textit{Explanations.} The drop in agreement with the centralised model under DP, which could be read as loss of fidelity, reflects a different model rather than unfaithful explanations: SHAP still ranked the features each private model relied on above random. For auditing a deployed private model, fidelity to that model is the relevant property; agreement with a non-private reference is not.
+
+\textit{Regulation.} FL, DP and HE are technical measures. They can support data minimisation and data protection by design and by default, and the security of processing, under Articles 5(1)(c), 25 and 32 of the GDPR \cite{gdpr2016}. They do not by themselves establish compliance, which also depends on lawful basis, purpose limitation, transparency, data-protection impact assessment and governance. Model updates and models may still be personal data, and a bound such as $\varepsilon\approx41$ provides little formal protection. Our cost model and MCDA treat privacy as properties of data flows and outputs, not as legal status.
+
+\textit{Limitations.} The learned models underperform a popularity ranking under the temporal hold-out, and randomly perturbed networks scored above the trained one, which indicates that the candidate features separate future purchases in a way the history-trained model does not exploit; absolute utility should not be generalised. Each client holds one user, as in cross-device FL; cross-silo deployments in which a client holds many users need user- or record-level DP within clients. Candidates are sampled. Only 20 clients and 15 rounds were simulated; with this few clients, DP noise is large relative to the signal. All CKKS roles ran in one process, without dropouts, malicious parties, threshold decryption or noise flooding. Gradient inversion used single-record updates and gave the attacker the sequence inputs; membership inference used a loss attack without shadow models, which gives a lower bound on leakage. Prices in the cost model are list prices used as assumptions.
+
+% ==================================================
+\section{Conclusion}
+% ==================================================
+
+In a leakage-free, ten-seed evaluation of a federated recommender with 20 clients, CKKS secure aggregation preserved utility exactly and protected individual updates from the server, at a communication cost that shared-mask Top-$k$ reduces substantially. Client-level DP at every noise level with a meaningful guarantee overwhelmed the clients' signal, so the trade-off at this scale is not a gradual loss of utility but the absence of learning; central DP additionally exposes individual updates to the server, which our attack inverted. SHAP explanations stayed faithful to each model even where they diverged from a centralised one. Correct accounting, noise-only controls, attacks matched to the privacy unit and costs separated by direction changed several conclusions of the first version of this study.
+
+\section*{Data and code availability}
+MovieLens-100k is available from GroupLens (\url{https://grouplens.org/datasets/movielens/100k/}). Code, configurations, the synthetic EARS data, per-run result files for every configuration and seed, and the scripts that generate every number and table in this paper are available in an anonymised repository: \url{https://anonymous.4open.science/r/federated-recsys-privacy-utility-explainability-0881/}.
+
+\section*{Ethics statement}
+The study uses a synthetic dataset and a public dataset; it involved no human participants and no identifiable personal data.
+
+\section*{Emerald AI policy disclosure}
+Generative AI tools were used for language editing and code assistance. The authors designed the study, verified the code and results, and take full responsibility for the content.
+
+\section*{Conflict of interest}
+The authors declare no competing interests.
+
+\bibliographystyle{agsm}
+\bibliography{references}
+
+\end{document}

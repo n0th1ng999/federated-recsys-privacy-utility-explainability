@@ -1,0 +1,149 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{newtxtext,newtxmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{caption}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
+
+% Supplementary items are cited from the main text as "Table S<n>", "Figure S<n>", "Algorithm S<n>".
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thealgorithm}{S\arabic{algorithm}}
+
+\input{generated/results_macros.tex}
+
+\title{\textbf{Supplementary material}\\[0.3em]Privacy, Utility and Explainability Trade-offs in Privacy-Preserving Federated Recommender Systems}
+\author{Anonymous submission}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent Every table in this document except S1 and S2 is generated from the per-run result files by \path{experiments/reporting/export_latex.py} in the replication repository, which also contains the result file of every configuration and seed.
+
+\begin{itemize}
+\item S1 Related work; S2 Hyperparameters; S3 Experiments and seeds; Algorithm S1 Training procedure
+\item S4 Differential-privacy accounting
+\item S5 MovieLens-100k detail
+\item S6 Explainer budgets; S7 Plausibility of interventions; Figure S1 Removal curves
+\item S8 Cost model; S9--S11 MCDA scores, scoring basis and sensitivity
+\end{itemize}
+
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\caption{Comparison of selected studies in federated recommendation, privacy and explainability.}
+\label{tab:supp_related_work}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.0cm}*{6}{>{\centering\arraybackslash}X}}
+\toprule
+Study & FL setting & HE & DP & XAI & Evaluation & Trade-off analysis \\
+\midrule
+Tan et al. (2020) & FedAvg & None & None & None & Top-$K$ ranking & Not reported \\
+Minto et al. (2021) & Secure aggregation & Paillier/CKKS & None & None & nDCG, Recall & Communication--utility \\
+Javeed et al. (2023) & FedAvg & None & Gaussian DP & None & MSE, Precision & Privacy--utility \\
+Saha et al. (2023) & Survey & Conceptual & Conceptual & None & n/a & Qualitative \\
+Shin et al. (2023) & FedAvg & None & Latent DP & None & Hit rate, nDCG & Privacy--utility \\
+Gaspar et al. (2025) & FedAvg & None & None & SHAP, LIME & Accuracy, RMSE & XAI--accuracy \\
+Gaspar et al. (2026) & Review & Partial & Partial & None & n/a & Literature synthesis \\
+This study & FedAvg, 20 clients & CKKS (TenSEAL), aligned Top-$k$ & Client-level central and distributed DP, RDP accounting & KernelSHAP, LIME; fidelity and divergence & nDCG, Recall on temporal hold-out; MIA; gradient inversion & Utility, cost, leakage, explanations, MCDA \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\footnotesize\textit{Source: Authors' own work.} Selected studies; not a systematic review.
+\end{table}
+
+% --------------------------------------------------
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Hyperparameters.}
+\label{tab:supp_hyperparams}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+Module & Parameter & Value \\
+\midrule
+Model & Network & \texttt{CoreHybridRecSys}, 586,700 parameters (2.35 MB float32) \\
+ & Loss & BCE (1.0) + pairwise ranking (0.2) + confidence (0.1) \\
+ & Explained features & 43 tabular summary features; sequence inputs held at instance values \\
+Data split & Cutoff & 80th percentile of purchase dates; features and statistics from data $\leq$ cutoff \\
+ & Users per seed & 20 training clients (one user each), 20 MIA non-member users, 50 evaluation users \\
+ & Evaluation candidates & Items first purchased after cutoff (relevant) + 50 never-interacted items \\
+ & Record hold-out & 20\% of each training client's samples, never trained on \\
+ & Training negatives & $\max(0.6\times\text{interacted}, 20)$ sampled non-interacted items per user \\
+Federated learning & Clients, rounds, sampling & $N=20$, $T=15$, $m=5$ uniformly without replacement \\
+ & Local training & 1 epoch, Adam, learning rate $10^{-3}$, weight decay $10^{-4}$, batch 64 \\
+ & Aggregation & Sample-weighted (E1, E3); uniform mean (E2, E4) \\
+ & Centralised (E0) & Same network and optimiser; same total number of processed samples \\
+DP & Unit, adjacency & Client (= user); replace-one \\
+ & Clipping & $C=1$ on the whole update ($L_2$) \\
+ & Noise & E2: $\sigma\in\{1,2,4,8\}$, std $\sigma C/m$ on the mean; E4: $\sigma=4$, std $\sigma C/\sqrt m$ per client \\
+ & Accounting & \texttt{dp\_accounting} 0.6.0 RDP, sampled w/o replacement, orders 1.1--256, $\delta=10^{-5}$ \\
+CKKS & Library, parameters & TenSEAL 0.3.16; ring dimension 8192; moduli $[60,40,40,60]$; scale $2^{40}$; 4096 slots \\
+ & Keys & Key holder holds secret key; server and clients receive public context only \\
+Top-$k$ & Ratios, mask & 50, 20, 10, 5\%; shared mask from previous global update (seeded random in round 1) \\
+Explanations & Instances & 30 evaluation candidates per seed, shared across configurations \\
+ & KernelSHAP & 200 coalitions, 20 background training rows \\
+ & LIME & Matched rows and library default (5,000); continuous features, regression mode \\
+ & Removal curves & SHAP / 20 random / reverse orders; 10 replacement draws; marginal and 10-NN conditional \\
+MIA & Attack & Loss threshold, threshold-free AUC; 2,000 bootstrap and permutation resamples \\
+Inversion & Attack & Cosine gradient matching, Adam lr 0.05, 300 iterations, 20 records per seed \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\raggedright\footnotesize\textit{Source: Authors' own work.}
+\end{table}
+
+\input{generated/tab_seeds.tex}
+
+% --------------------------------------------------
+\begin{algorithm}[H]
+\caption{Training procedure for E1--E4 (one seed).}
+\label{alg:fl}
+\begin{algorithmic}[1]
+\Require clients $\{1..N\}$, rounds $T$, sample size $m$, clip $C$, noise multiplier $\sigma$, Top-$k$ ratio $r$
+\State Key holder generates CKKS keys; public context (no secret key) sent to server and clients \Comment{E3, E4}
+\For{$t=1..T$}
+  \State Server samples $S_t$, $|S_t|=m$, uniformly without replacement; broadcasts $w_{t-1}$
+  \State If $r<1$: server broadcasts mask $M_t$ (round 1: seeded random; else top-$rP$ of $|\Delta_{t-1}|$) \Comment{E3 Top-$k$}
+  \For{each $k\in S_t$}
+    \State $\Delta_k \gets \textsc{LocalTrain}(w_{t-1}, D_k) - w_{t-1}$
+    \If{E4} $\Delta_k \gets \textsc{Clip}_C(\Delta_k) + \mathcal{N}(0,\sigma^2C^2/m)$ \EndIf
+    \If{E3 or E4} send $\textsc{Enc}(\Delta_k[M_t])$ \Else\ send $\Delta_k$ \EndIf
+  \EndFor
+  \If{E2} $\Delta \gets \frac1m\sum_k \textsc{Clip}_C(\Delta_k) + \mathcal{N}(0,(\sigma C/m)^2)$ \Comment{server, plaintext}
+  \ElsIf{E3 or E4} server computes $\sum_k a_k\,\textsc{Enc}(\cdot)$ with public context; key holder decrypts; scatter to $M_t$
+  \Else\ $\Delta \gets \sum_k a_k \Delta_k$ \EndIf
+  \State $w_t \gets w_{t-1}+\Delta$; if DP, record one subsampled Gaussian step in the accountant
+\EndFor
+\State $a_k = n_k/\sum_{j\in S_t} n_j$ for E1, E3; $a_k = 1/m$ for E2, E4
+\end{algorithmic}
+\end{algorithm}
+
+\input{generated/tab_dp.tex}
+\input{generated/tab_ml_detail.tex}
+\input{generated/tab_xai_budget.tex}
+\input{generated/tab_plausibility.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{generated/fig_removal_curves.pdf}
+\caption{Removal curves (EARS, conditional replacement): normalised effect $e(k)$ when the first $k$ features are replaced in SHAP order, random order and reverse order, mean over seeds and instances, for E1, E3, E2 ($\sigma=4$) and E4. Source: Authors' own work.}
+\label{fig:removal}
+\end{figure}
+
+\input{generated/tab_cost.tex}
+\input{generated/tab_mcda.tex}
+
+\end{document}
